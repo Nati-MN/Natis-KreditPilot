@@ -3,7 +3,7 @@ import { breakEven, compareMetrics, type Analysis } from '../lib/analysis';
 import { csvFromTable, MIME, pdfFromTable, saveFile, toBlob, xlsxFromTable } from '../lib/export';
 import { euro, number2, percent } from '../lib/format';
 import { calculateLoan } from '../lib/loan';
-import { project } from '../lib/invest';
+import { project, typicalMonth } from '../lib/invest';
 import { toLoanInput, type AppState, type SavedScenario } from '../lib/state';
 import { BalanceChart, SplitChart } from './Charts';
 import { CashflowChart, CostDistributionChart, CumulativeChart, FixVarChart, IncomeExpenseChart, RentCompositionChart, ValueChart, YieldChart } from './InvestCharts';
@@ -54,6 +54,54 @@ function Verdict({ a }: { a: Analysis }) {
   );
 }
 
+/** „Was passiert, wenn …“: drei Regler zeigen sofort die Wirkung auf Mieteinnahmen und Cashflow. Ändert nichts an den Eingaben. */
+export function WhatIf({ a }: { a: Analysis }) {
+  const base = a.s.invest.vacancyMonths;
+  const [rent, setRent] = useState(0);
+  const [vacancy, setVacancy] = useState<number | null>(null);
+  const [rate, setRate] = useState(0);
+  const v = vacancy ?? base;
+  const changed = rent !== 0 || rate !== 0 || v !== base;
+  const r = useMemo(() => {
+    const invest = {
+      ...a.invest, vacancyMonths: v,
+      rent: { ...a.invest.rent, components: a.invest.rent.components.map((c) => (c.key === 'hmz' ? { ...c, amount: c.amount * (1 + rent / 100) } : c)) },
+    };
+    const payment = rate === 0 ? a.month.payment
+      : calculateLoan({ ...a.loanInput, fixRate: a.loanInput.fixRate + rate, variableRate: a.loanInput.variableRate + rate }, false).monthlyBurden + a.fees;
+    return typicalMonth(invest, payment, a.month.extra);
+  }, [a, rent, v, rate]);
+  const incomeYear = r.income * 12;
+  const baseYear = a.month.income * 12;
+  const diffCf = r.cashflow - a.month.cashflow;
+  return (
+    <Card title="Was passiert, wenn …" action={changed ? <Button onClick={() => { setRent(0); setVacancy(null); setRate(0); }}>Zurück zum Ausgangszustand</Button> : <Badge>Ausprobieren</Badge>}>
+      <div className="grid gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4">
+          <SliderField id="ww-miete" label="Miete ändert sich um" value={rent} min={-30} max={30} step={1} unit="%" onChange={setRent} />
+          <SliderField id="ww-leerstand" label="Leerstand pro Jahr" value={v} min={0} max={12} step={0.5} decimals={1} unit="Monate" onChange={setVacancy} />
+          <SliderField id="ww-zins" label="Kreditzins steigt um" value={rate} min={0} max={5} step={0.25} decimals={2} unit="%-Pkt." onChange={setRate} />
+        </div>
+        <div className="grid content-start gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div className="rounded-xl border border-line p-4">
+            <div className="text-[13px] text-muted">Jährliche Mieteinnahmen</div>
+            <div className="num mt-1 font-display text-2xl font-bold">{euro(incomeYear)}</div>
+            <div className={`num mt-1 text-[13px] font-medium ${incomeYear - baseYear > 0.5 ? 'text-good' : incomeYear - baseYear < -0.5 ? 'text-bad' : 'text-muted'}`}>{signed(incomeYear - baseYear)} gegenüber dem Ausgangszustand</div>
+          </div>
+          <div className={`rounded-xl p-4 text-surface ${r.cashflow >= 0 ? 'bg-good' : 'bg-bad'}`}>
+            <div className="text-[13px] opacity-90">Cashflow pro Monat</div>
+            <div className="num mt-1 font-display text-2xl font-bold">{signed(r.cashflow)}</div>
+            <div className="num mt-1 text-[13px] font-medium opacity-95">{signed(diffCf)} gegenüber dem Ausgangszustand</div>
+          </div>
+          <p className="text-[13px] text-muted sm:col-span-2 lg:col-span-1 xl:col-span-2">
+            Ausgangszustand: {euro(a.rent.hmz)} Hauptmietzins, {number2(base)} Monate Leerstand, Kreditrate {euro(a.month.payment)}. Neue Kreditrate: {euro(r.payment)}. Die Regler ändern deine Eingaben nicht.
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 /** Vereinfachte Ansicht: nur das, was für die Entscheidung nötig ist. */
 export function SimpleInvest({ a, raw }: { a: Analysis; raw: AppState }) {
   const be = useMemo(() => breakEven(raw, a), [raw, a]);
@@ -71,6 +119,7 @@ export function SimpleInvest({ a, raw }: { a: Analysis; raw: AppState }) {
         </div>
         <Ledger a={a} />
       </div>
+      <WhatIf a={a} />
       <div className="grid gap-4 xl:grid-cols-2">
         <IncomeExpenseChart a={a} />
         <Card title="Gut zu wissen">
@@ -311,6 +360,7 @@ export function AdvancedInvest({ a, raw, patch, projects }: { a: Analysis; raw: 
         { value: 'ueberblick', label: 'Überblick' }, { value: 'miete', label: 'Miete und Kosten' }, { value: 'prognose', label: 'Prognose' },
         { value: 'breakeven', label: 'Break-even' }, { value: 'tabelle', label: 'Tabelle' }, { value: 'vergleich', label: 'Vergleich' },
       ]} />
+      {tab === 'ueberblick' && <WhatIf a={a} />}
       {tab === 'ueberblick' && (
         <div className="grid gap-4 xl:grid-cols-2">
           <Ledger a={a} />

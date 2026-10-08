@@ -155,10 +155,10 @@ export function Legal({ page, onBack, onCleared }: { page: LegalPage; onBack: ()
 }
 
 /** Fußzeilen-Links zu den Rechtsseiten. */
-export function LegalLinks({ onOpen }: { onOpen: (p: LegalPage) => void }) {
+export function LegalLinks({ onOpen }: { onOpen: (p: LegalPage | 'quellen') => void }) {
   return (
     <nav aria-label="Rechtliches" className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px]">
-      {LEGAL_PAGES.map((p) => (
+      {[{ value: 'quellen' as const, label: 'Quellen und Annahmen' }, ...LEGAL_PAGES].map((p) => (
         <a key={p.value} href={`#${p.value}`} onClick={(e) => { e.preventDefault(); onOpen(p.value); }} className="font-medium text-muted underline underline-offset-2 hover:text-accent">{p.label}</a>
       ))}
     </nav>

@@ -15,7 +15,7 @@ const tone = (v: number) => (v >= 0 ? 'good' : 'bad') as 'good' | 'bad';
 export function AffordSection({ s, patch, a, advanced }: { s: AppState; patch: Patch; a: Analysis; advanced: boolean }) {
   const f = s.afford;
   const set = (p: Partial<AffordState>) => patch({ afford: { ...f, ...p } });
-  const loan = { payment: a.month.payment, principal: a.fin.loan, ratePercent: a.s.fixRate, termMonths: a.s.termYears * 12, propertyValue: a.s.price };
+  const loan = { payment: a.month.payment, principal: a.fin.loan, ratePercent: a.s.fixRate, termMonths: a.s.termYears * 12, propertyValue: a.s.loanOnly ? 0 : a.s.price };
   const r = useMemo(() => calculateAfford(f, loan, s.rules), [f, loan.payment, loan.principal, loan.ratePercent, loan.termMonths, loan.propertyValue, s.rules]);
   const money = (id: keyof AffordState, label: string, max: number, hint?: string) => (
     <SliderField id={`lb-${id}`} label={label} value={f[id] as number} min={0} max={max} step={10} unit="€" onChange={(v) => set({ [id]: v } as Partial<AffordState>)} hint={hint} />

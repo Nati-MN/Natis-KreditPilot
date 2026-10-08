@@ -6,8 +6,8 @@ import { DEFAULT_POI, type PoiState } from './payinvest';
 import { DEFAULT_REFI, type RefiState } from './refinance';
 import { DEFAULT_PURCHASE_ITEMS, purchaseCostsDetail, type PurchaseItem } from './purchase';
 
-export type Section = 'start' | 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest' | 'datenschutz' | 'nutzung' | 'cookies' | 'erstattung';
-export const SECTIONS: Section[] = ['start', 'kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest', 'datenschutz', 'nutzung', 'cookies', 'erstattung'];
+export type Section = 'start' | 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest' | 'immobilien' | 'quellen' | 'datenschutz' | 'nutzung' | 'cookies' | 'erstattung';
+export const SECTIONS: Section[] = ['start', 'kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest', 'immobilien', 'quellen', 'datenschutz', 'nutzung', 'cookies', 'erstattung'];
 export type TermMode = 'laufzeit' | 'tilgung' | 'rate';
 
 export interface LoanFees {
@@ -65,6 +65,8 @@ export interface AppState {
   costsFinanced: boolean;
   manualLoan: boolean;
   manualLoanAmount: number;
+  /** Nur ein Kredit ohne Immobilienkauf: Kreditbetrag wird direkt eingegeben. Gilt nicht im Bereich Vermietung. */
+  loanOnly: boolean;
   termYears: number;
   mode: LoanMode;
   fixRate: number;
@@ -170,6 +172,7 @@ export const DEFAULT_STATE: AppState = {
   costsFinanced: false,
   manualLoan: false,
   manualLoanAmount: 119000,
+  loanOnly: false,
   termYears: 30,
   mode: 'fix',
   fixRate: 3.2,
@@ -300,7 +303,7 @@ export function effectiveState(s: AppState): AppState {
   if (s.viewMode === 'erweitert') return s;
   return {
     ...s,
-    manualLoan: false,
+    manualLoan: s.loanOnly ? s.manualLoan : false,
     rateChanges: [],
     useReference: false,
     extra: { ...NO_EXTRAS },
@@ -335,7 +338,7 @@ export function pausedSettings(s: AppState): string[] {
   if (s.loanType !== 'annuitaet' || s.graceMonths > 0 || s.termMode !== 'laufzeit' || s.interval !== 1 || s.dayCount !== '30/360' || s.rateCapOn || s.rateFloorOn) out.push('Kreditart und Vertragsdetails');
   if (s.fees.accountMonthly > 0 || s.fees.insuranceMonthly > 0 || s.fees.otherOneTime > 0) out.push('laufende Kreditgebühren');
   if (s.mode === 'variabel' && (s.rateChanges.length > 0 || s.useReference)) out.push('Zinsszenarien');
-  if (s.manualLoan) out.push('manueller Kreditbetrag');
+  if (s.manualLoan && !s.loanOnly) out.push('manueller Kreditbetrag');
   const i = s.invest;
   if (i.costs.some((c) => c.interval === 'einmalig' || c.start || c.end)) out.push('einmalige und befristete Kosten');
   if (i.freeMonths > 0 || i.rentAdjustments.length > 0) out.push('mietfreie Monate und Mietanpassungen');
@@ -366,6 +369,13 @@ export interface Financing {
 }
 
 export function financing(s: AppState): Financing {
+  // Reiner Kredit ohne Kauf: keine Kaufnebenkosten, der Betrag kommt direkt aus der Eingabe.
+  if (s.loanOnly && s.section !== 'invest' && s.section !== 'immobilien') {
+    const loan = Math.max(0, s.manualLoanAmount);
+    return { costs: 0, acquisitionCosts: 0, financingCosts: 0, costLines: [], renovation: 0, initialCosts: 0, totalInvestment: loan, loan, ownFunds: 0, furnishing: 0, capitalNeed: loan, ownFundsNeeded: 0, equityRatio: 0, ltv: 0 };
+  }
+  // Der direkt eingegebene Betrag eines reinen Kredits gilt nicht für die Immobilie.
+  const manualLoan = s.manualLoan && !s.loanOnly;
   const reno = Math.max(0, s.invest.renovation);
   const furnishing = Math.max(0, s.furnishing);
   const costsFor = (loan: number) => {
@@ -374,9 +384,9 @@ export function financing(s: AppState): Financing {
     const total = s.costsMode === 'percent' ? r2((s.price * s.costsPercent) / 100) : s.costsEuro;
     return { total, acquisition: total, financing: 0, lines: [{ id: 'pauschal', name: 'Kaufnebenkosten pauschal', amount: total }] };
   };
-  let loan = s.manualLoan ? Math.max(0, s.manualLoanAmount) : Math.max(0, s.price - s.equity);
+  let loan = manualLoan ? Math.max(0, s.manualLoanAmount) : Math.max(0, s.price - s.equity);
   let costs = costsFor(loan);
-  if (!s.manualLoan) {
+  if (!manualLoan) {
     // Kreditabhängige Gebühren (Pfandrecht, Bankgebühr) erhöhen bei Mitfinanzierung den Kredit: Fixpunkt suchen.
     for (let k = 0; k < 40; k++) {
       const next = Math.max(0, r2(s.price - s.equity + (s.costsFinanced ? costs.total + reno + furnishing : 0)));

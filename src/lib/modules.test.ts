@@ -81,6 +81,8 @@ describe('Leistbarkeit', () => {
     expect(r.scenarios[0].payment).toBe(annuity(250000, 5.5, 360));
     expect(calculateAfford(DEFAULT_AFFORD, { ...l, principal: 290000 }, DEFAULT_RULES).checks[1].ok).toBe(false);
     expect(calculateAfford(DEFAULT_AFFORD, { ...l, termMonths: 480 }, DEFAULT_RULES).checks[2].ok).toBe(false);
+    // ohne Immobilie (reiner Kredit) gibt es keine Beleihungsquote
+    expect(calculateAfford(DEFAULT_AFFORD, { ...l, propertyValue: 0 }, DEFAULT_RULES).checks.map((c) => c.label)).toEqual(['Schuldendienstquote', 'Laufzeit']);
     // Grenzwerte sind Parameter, nicht fest verdrahtet
     expect(calculateAfford(tight, l, { ...DEFAULT_RULES, maxDsti: 60 }).checks[0].ok).toBe(true);
   });
@@ -171,6 +173,16 @@ describe('Zustand: neue Kreditoptionen, Import und Export', () => {
     expect(f.ownFundsNeeded).toBe(round2(f.capitalNeed - 89000));
     expect(f.ltv).toBeCloseTo((89000 / 119000) * 100, 6);
     expect(financing({ ...adv, furnishing: 8000, costsFinanced: true }).loan).toBeGreaterThan(89000 + 8000);
+  });
+  it('reiner Kredit ohne Immobilienkauf', () => {
+    const s: AppState = { ...DEFAULT_STATE, section: 'kredit', loanOnly: true, manualLoan: true, manualLoanAmount: 20000, termYears: 5, fixRate: 6 };
+    const a = analyze(s);
+    expect(a.fin.loan).toBe(20000);
+    expect(a.fin.costs).toBe(0);
+    expect(a.loan.firstPayment).toBe(386.66);
+    expect(a.loan.apr!).toBeCloseTo((Math.pow(1.005, 12) - 1) * 100, 2);
+    // im Bereich Vermietung zählt wieder die Immobilie
+    expect(analyze({ ...s, section: 'invest' }).fin.loan).toBe(89000);
   });
   it('vereinfachte Ansicht pausiert die neuen Optionen', () => {
     const s: AppState = { ...DEFAULT_STATE, loanType: 'endfaellig', graceMonths: 24, fees: { accountMonthly: 9, insuranceMonthly: 0, otherOneTime: 0 }, extraRules: [{ id: 'a', label: '', interval: 'monatlich', unit: 'euro', amount: 100, from: 1, to: null }] };

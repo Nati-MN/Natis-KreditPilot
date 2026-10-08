@@ -41,6 +41,21 @@ export function FinancePanel({ s, patch, advanced, invest }: { s: AppState; patc
   const setInv = (p: Partial<AppState['invest']>) => patch({ invest: { ...inv, ...p } });
   const perM2 = inv.livingArea > 0 ? s.price / inv.livingArea : 0;
   const extraOwn = fin.ownFundsNeeded - s.equity;
+  if (s.loanOnly && !invest) {
+    return (
+      <Card title="Kredit">
+        <div className="flex flex-col gap-4">
+          <SliderField id="kreditbetrag" label="Kreditbetrag" value={s.manualLoanAmount} min={1000} max={500000} step={500} unit="€" onChange={(v) => patch({ manualLoanAmount: v, manualLoan: true })} />
+          <SliderField id="laufzeit" label="Kreditlaufzeit" value={s.termYears} min={1} max={40} step={1} unit="Jahre"
+            onChange={(v) => patch({ termYears: v, fixYears: Math.min(s.fixYears, v), balanceYear: Math.min(s.balanceYear, v) })} />
+          <div className="rounded-xl bg-bg p-3 text-[13px] text-muted">
+            Du rechnest einen Kredit ohne Immobilienkauf, zum Beispiel für ein Auto oder eine Anschaffung.{' '}
+            <button type="button" onClick={() => patch({ loanOnly: false, manualLoan: false })} className="font-medium text-accent underline underline-offset-2">Stattdessen eine Immobilie kaufen</button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
   return (
     <Card title={invest ? 'Immobilie und Kauf' : 'Finanzierung'}>
       <div className="flex flex-col gap-4">

@@ -5,6 +5,8 @@ import { ExtraPanel } from './components/ExtraPanel';
 import { CostsPanel, LoanSummary, RentPanel, RiskPanel, TaxPanel } from './components/InvestSettings';
 import { AdvancedInvest, SimpleInvest } from './components/InvestViews';
 import { Landing } from './components/Landing';
+import { Portfolio } from './components/Portfolio';
+import { Sources } from './components/Sources';
 import { ConsentBanner, isLegal, Legal, LegalLinks } from './components/Legal';
 import { ExtraSimulator, MilestonesPanel, RateSimulator } from './components/LoanTools';
 import { ScheduleTable } from './components/ScheduleTable';
@@ -67,7 +69,7 @@ function buildReport(a: Analysis, effect: ExtraEffect | null): Omit<Report, 'vie
     result: r,
     tables,
     sections: [
-      { title: 'Eingaben', rows: [
+      { title: 'Eingaben', rows: s.loanOnly ? [['Kreditbetrag', euro(a.fin.loan)], ['Verwendung', 'Kredit ohne Immobilienkauf']] : [
         ['Kaufpreis', euro(s.price)], ['Eigenkapital', euro(s.equity)], ['Kaufnebenkosten', euro(a.fin.costs)], ['Renovierung und Einrichtung', euro(a.fin.renovation + a.fin.furnishing)],
         ['Gesamtinvestition', euro(a.fin.totalInvestment)], ['Kreditbetrag', euro(a.fin.loan)], ['Beleihungsquote', percent(a.fin.ltv, 1)],
       ] },
@@ -146,7 +148,7 @@ export default function App() {
   const a = useMemo(() => analyze(s), [s]);
   const advanced = s.viewMode === 'erweitert';
   // In der vereinfachten Ansicht gibt es nur drei Bereiche.
-  const section: Section = advanced || ['start', 'kredit', 'leistbarkeit', 'invest'].includes(s.section) || isLegal(s.section) ? s.section : 'kredit';
+  const section: Section = advanced || ['start', 'kredit', 'leistbarkeit', 'invest', 'immobilien', 'quellen'].includes(s.section) || isLegal(s.section) ? s.section : 'kredit';
   const invest = section === 'invest';
   const result = a.loan;
   const effect = useMemo(() => (hasExtras(a.loanInput.extra, a.loanInput.extraRules) ? extraEffect(a.loanInput, result) : null), [a.loanInput, result]);
@@ -161,7 +163,7 @@ export default function App() {
   const contractMonths = s.termYears * 12;
   const afterFix = variable ? result.paymentAfterFix : null;
   const reset = () => setS({ ...DEFAULT_STATE, viewMode: s.viewMode, section: s.section });
-  const plain = section === 'start' || isLegal(section); // Seiten ohne Rechner-Bedienelemente
+  const plain = section === 'start' || section === 'quellen' || isLegal(section); // Seiten ohne Rechner-Bedienelemente
   const k = a.s.interval;
   const rateLabel = `${INTERVAL_LABEL[k]} Kreditrate`;
 
@@ -193,8 +195,8 @@ export default function App() {
   );
 
   const nav: { value: Section; label: string }[] = advanced
-    ? [{ value: 'start', label: 'Start' }, { value: 'kredit', label: 'Kreditrechner' }, { value: 'vergleich', label: 'Vergleich' }, { value: 'leistbarkeit', label: 'Leistbarkeit' }, { value: 'umschuldung', label: 'Umschuldung' }, { value: 'tilgen', label: 'Tilgen oder investieren' }, { value: 'invest', label: 'Immobilie vermieten' }]
-    : [{ value: 'start', label: 'Start' }, { value: 'kredit', label: 'Kreditrechner' }, { value: 'leistbarkeit', label: 'Kann ich mir das leisten?' }, { value: 'invest', label: 'Immobilie vermieten' }];
+    ? [{ value: 'start', label: 'Start' }, { value: 'kredit', label: 'Kreditrechner' }, { value: 'vergleich', label: 'Vergleich' }, { value: 'leistbarkeit', label: 'Leistbarkeit' }, { value: 'umschuldung', label: 'Umschuldung' }, { value: 'tilgen', label: 'Tilgen oder investieren' }, { value: 'invest', label: 'Immobilie vermieten' }, { value: 'immobilien', label: 'Meine Immobilien' }]
+    : [{ value: 'start', label: 'Start' }, { value: 'kredit', label: 'Kreditrechner' }, { value: 'leistbarkeit', label: 'Kann ich mir das leisten?' }, { value: 'invest', label: 'Immobilie vermieten' }, { value: 'immobilien', label: 'Meine Immobilien' }];
 
   const pausedBanner = paused.length > 0 && (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-line bg-accentsoft px-4 py-3 text-sm">
@@ -206,7 +208,8 @@ export default function App() {
     <footer className="rounded-card border border-line p-4 text-[13px] leading-relaxed text-muted">
       <strong className="text-fg">Annahmen dieser Rechnung:</strong> Zinsen je Monat = Restschuld × Nominalzins × Tagesanteil, Beträge auf Cent gerundet, die letzte Rate gleicht Rundungen aus.
       Banken können je nach Vertrag anders rechnen. Variable Zinsen, Mietsteigerung, Leerstand, Renditen und Wertentwicklung sind deine eigenen Annahmen und keine Vorhersage.
-      Gebühren-, Steuersätze und Orientierungswerte der Aufsicht: Österreich, Stand Oktober 2026. Steuerberechnungen sind vereinfachte Schätzungen. Kredit Pilot ersetzt kein verbindliches Angebot und keine Rechts-, Steuer- oder Anlageberatung.
+      Gebühren-, Steuersätze und Orientierungswerte der Aufsicht: Österreich, Stand Oktober 2026. Steuerberechnungen sind vereinfachte Schätzungen. Kredit Pilot ersetzt kein verbindliches Angebot und keine Rechts-, Steuer- oder Anlageberatung.{' '}
+      <a href="#quellen" onClick={(e) => { e.preventDefault(); patch({ section: 'quellen' }); }} className="font-medium text-accent underline underline-offset-2">Quellen und Annahmen ansehen</a>
     </footer>
   );
   const credit = (
@@ -246,7 +249,18 @@ export default function App() {
 
       <main id="inhalt" tabIndex={-1} className="outline-none">
       {isLegal(section) && <div className="flex flex-col gap-4"><Legal page={section} onBack={() => patch({ section: 'start' })} onCleared={() => setS((prev) => ({ ...DEFAULT_STATE, viewMode: prev.viewMode, section: prev.section }))} />{credit}</div>}
-      {section === 'start' && <div className="flex flex-col gap-4"><Landing onOpen={(sec, adv) => patch(adv ? { section: sec, viewMode: 'erweitert' } : { section: sec })} />{credit}</div>}
+      {section === 'quellen' && <div className="flex flex-col gap-4"><Sources onBack={() => patch({ section: 'start' })} />{credit}</div>}
+      {section === 'immobilien' && (
+        <div className="flex flex-col gap-4">
+          <Portfolio current={s} list={projects} setList={setProjects}
+            onOpen={(loaded) => setS({ ...normalize(loaded), viewMode: s.viewMode, section: 'invest' })}
+            onNew={() => setS({ ...DEFAULT_STATE, viewMode: s.viewMode, section: 'invest' })} />
+          {credit}
+        </div>
+      )}
+      {section === 'start' && <div className="flex flex-col gap-4"><Landing onChoose={(c) => patch(c === 'kredit' ? { section: 'kredit', loanOnly: true, manualLoan: true, manualLoanAmount: s.loanOnly ? s.manualLoanAmount : 20000, termYears: s.loanOnly ? s.termYears : 7 }
+        : c === 'kauf' ? { section: 'kredit', loanOnly: false, manualLoan: false, termYears: s.loanOnly ? 30 : s.termYears } : { section: 'invest' })}
+        onOpen={(sec, adv) => patch(adv ? { section: sec, viewMode: 'erweitert' } : { section: sec })} />{credit}</div>}
       {section === 'vergleich' && <div className="flex flex-col gap-4"><Comparison s={s} patch={patch} a={a} projects={projects} />{footer}{credit}</div>}
       {section === 'leistbarkeit' && <div className="flex flex-col gap-4">{pausedBanner}<AffordSection s={s} patch={patch} a={a} advanced={advanced} />{footer}{credit}</div>}
       {section === 'umschuldung' && <div className="flex flex-col gap-4"><RefiSection s={s} patch={patch} a={a} />{footer}{credit}</div>}
@@ -343,7 +357,7 @@ export default function App() {
       </main>
 
       {/* Mobile Leiste mit der wichtigsten Zahl (nicht auf Start- und Rechtsseiten) */}
-      <div hidden={plain} aria-hidden="true" className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface px-4 pt-2 lg:hidden" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}>
+      <div hidden={plain || section === 'immobilien'} aria-hidden="true" className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface px-4 pt-2 lg:hidden" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[12px] text-muted">{k === 1 ? 'Monatsrate' : 'Rate'}</div>

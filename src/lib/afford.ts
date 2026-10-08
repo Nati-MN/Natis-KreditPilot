@@ -162,7 +162,7 @@ export function calculateAfford(a: AffordState, loan: AffordLoan, rules: Lending
     reserveAfterUnexpected: round2(a.reserve - a.unexpected),
     checks: [
       { label: 'Schuldendienstquote', value: pct(dsti), limit: `höchstens ${pct(rules.maxDsti)}`, ok: dsti <= rules.maxDsti },
-      { label: 'Beleihungsquote', value: pct(ltv), limit: `höchstens ${pct(rules.maxLtv)}`, ok: ltv <= rules.maxLtv },
+      ...(loan.propertyValue > 0 ? [{ label: 'Beleihungsquote', value: pct(ltv), limit: `höchstens ${pct(rules.maxLtv)}`, ok: ltv <= rules.maxLtv }] : []),
       { label: 'Laufzeit', value: `${termYears.toLocaleString('de-DE', { maximumFractionDigits: 1 })} Jahre`, limit: `höchstens ${rules.maxTerm} Jahre`, ok: termYears <= rules.maxTerm },
     ],
     scenarios,
