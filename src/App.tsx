@@ -212,7 +212,6 @@ export default function App() {
   const credit = (
     <>
       <LegalLinks onOpen={(p) => patch({ section: p })} />
-      <p className="text-center text-[12px] text-muted">This is a Website created by: "Nati Man"</p>
       <p className="text-center text-[11px] leading-snug text-muted">
         <strong>Impressum:</strong> Private, nicht kommerzielle Webseite ohne Unternehmen. Keine Werbung, keine Einnahmen. Alle Berechnungen ohne Gewähr.
       </p>
