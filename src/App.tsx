@@ -100,7 +100,7 @@ export default function App() {
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-2xl font-bold leading-none tracking-tight">
-            NATI Kredit<span className="text-accent">Pilot</span>
+            Kredit <span className="text-accent">Pilot</span>
           </h1>
           <p className="mt-1 text-sm text-muted">Immobilienkredit und Vermietung einfach verstehen</p>
         </div>
@@ -207,8 +207,9 @@ export default function App() {
           <footer className="rounded-card border border-line p-4 text-[13px] leading-relaxed text-muted">
             <strong className="text-fg">Annahmen dieser Rechnung:</strong> Annuitätendarlehen mit monatlicher Zahlung, Monatszins = Nominalzins pro Jahr ÷ 12, Beträge auf Cent gerundet.
             Banken können je nach Vertrag anders rechnen. Variable Zinsen, Mietsteigerung, Leerstand und Wertentwicklung sind deine eigenen Annahmen und keine Vorhersage.
-            Gebühren- und Steuersätze: Österreich, Stand Oktober 2026. Die Steuerberechnung ist eine vereinfachte Schätzung. NATI KreditPilot ersetzt kein verbindliches Angebot und keine Rechts-, Steuer- oder Anlageberatung.
+            Gebühren- und Steuersätze: Österreich, Stand Oktober 2026. Die Steuerberechnung ist eine vereinfachte Schätzung. Kredit Pilot ersetzt kein verbindliches Angebot und keine Rechts-, Steuer- oder Anlageberatung.
           </footer>
+          <p className="text-center text-[12px] text-muted">This is a Website created by: "Nati Man"</p>
         </main>
       </div>
 

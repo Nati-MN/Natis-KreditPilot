@@ -75,7 +75,7 @@ export function buildPdf(result: LoanResult, view: PlanView, summary: [string, s
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('NATI KreditPilot – Tilgungsplan', 14, 18);
+  doc.text('Kredit Pilot – Tilgungsplan', 14, 18);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(90);

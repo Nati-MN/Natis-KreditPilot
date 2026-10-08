@@ -189,8 +189,8 @@ function ProjectionTable({ a }: { a: Analysis }) {
         ['Brutto- / Nettomietrendite', `${percent(a.yields.grossOnPrice, 2)} / ${percent(a.yields.netOnTotal, 2)}`],
       ];
       const blob = kind === 'csv' ? csvFromTable(head, body)
-        : pdfFromTable('NATI KreditPilot – Immobilien-Investment', summary, head, body, 'Modellrechnung mit eigenen Annahmen zu Miete, Leerstand, Zinsen, Wert und Steuern. Keine Prognose und keine Beratung.');
-      setMessage(await saveFile(`nati-immobilie-prognose-${view}.${kind}`, blob));
+        : pdfFromTable('Kredit Pilot – Immobilien-Investment', summary, head, body, 'Modellrechnung mit eigenen Annahmen zu Miete, Leerstand, Zinsen, Wert und Steuern. Keine Prognose und keine Beratung.');
+      setMessage(await saveFile(`kreditpilot-immobilie-prognose-${view}.${kind}`, blob));
     } catch {
       setMessage('Der Export konnte nicht erstellt werden.');
     }
