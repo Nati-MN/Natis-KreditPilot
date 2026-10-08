@@ -75,7 +75,7 @@ export function buildPdf(result: LoanResult, view: PlanView, summary: [string, s
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('KreditPilot – Tilgungsplan', 14, 18);
+  doc.text('NATI KreditPilot – Tilgungsplan', 14, 18);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(90);
@@ -108,3 +108,38 @@ export function buildPdf(result: LoanResult, view: PlanView, summary: [string, s
   });
   return doc.output('blob');
 }
+
+// ---------- Allgemeiner Tabellen-Export (Investment-Prognose, Vergleich) ----------
+export function csvFromTable(head: string[], body: string[][]): Blob {
+  const clean = (c: string) => (/^-?[\d.]+(,\d+)?$/.test(c) ? c.replace(/\./g, '') : c.replace(/;/g, ','));
+  const lines = [head, ...body.map((row) => row.map(clean))].map((r) => r.join(';'));
+  return new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+}
+
+export function pdfFromTable(title: string, summary: [string, string][], head: string[], body: string[][], note: string): Blob {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: head.length > 8 ? 'landscape' : 'portrait' });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(title, 14, 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  doc.text(`Erstellt am ${new Date().toLocaleDateString('de-AT')} · Beträge in EUR`, 14, 24);
+  autoTable(doc, { startY: 29, body: summary, theme: 'plain', styles: { fontSize: 9, cellPadding: 1.2 }, columnStyles: { 0: { textColor: 90, cellWidth: 70 }, 1: { fontStyle: 'bold' } } });
+  const startY = ((doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 60) + 5;
+  autoTable(doc, {
+    startY, head: [head], body,
+    styles: { fontSize: 7.5, cellPadding: 1.3, halign: 'right' },
+    headStyles: { fillColor: [21, 87, 192], halign: 'right' },
+    alternateRowStyles: { fillColor: [241, 244, 248] },
+    didDrawPage: () => {
+      doc.setFontSize(7);
+      doc.setTextColor(120);
+      doc.text(note, 14, doc.internal.pageSize.getHeight() - 8);
+    },
+  });
+  return doc.output('blob');
+}
+
+/** PDF-Standardschrift kennt kein €-Zeichen. */
+export const pdfEuro = (text: string) => text.replace(/€/g, 'EUR');

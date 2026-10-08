@@ -7,7 +7,7 @@ export const euro = (v: number) => eur2.format(v);
 export const euro0 = (v: number) => eur0.format(v);
 export const number2 = (v: number) => num2.format(v);
 export const percent = (v: number, digits = 2) =>
-  new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: digits }).format(v) + ' %';
+  new Intl.NumberFormat('de-DE', { minimumFractionDigits: Math.min(1, digits), maximumFractionDigits: digits }).format(v) + ' %';
 export const compactEuro = (v: number) =>
   Math.abs(v) >= 1000 ? new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(v / 1000) + ' T€' : euro0(v);
 

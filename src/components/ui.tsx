@@ -1,17 +1,55 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { parseNumber } from '../lib/format';
 
-export function Card({ title, children, action, className = '' }: { title?: ReactNode; children: ReactNode; action?: ReactNode; className?: string }) {
+export function Card({ title, children, action, className = '', collapsible, defaultOpen = true, summary }: {
+  title?: ReactNode; children: ReactNode; action?: ReactNode; className?: string; collapsible?: boolean; defaultOpen?: boolean; summary?: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  const show = !collapsible || open;
   return (
     <section className={`min-w-0 rounded-card border border-line bg-surface p-4 sm:p-5 ${className}`}>
       {(title || action) && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          {title && <h2 className="font-display text-[17px] font-bold leading-tight">{title}</h2>}
+        <div className={`flex flex-wrap items-center justify-between gap-2 ${show ? 'mb-4' : ''}`}>
+          {collapsible ? (
+            <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)} className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+              <h2 className="font-display text-[17px] font-bold leading-tight">{title}</h2>
+              <span className="flex shrink-0 items-center gap-2 text-[13px] text-muted">
+                {!open && summary}
+                <span aria-hidden="true" className={`inline-block transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+              </span>
+            </button>
+          ) : (
+            title && <h2 className="font-display text-[17px] font-bold leading-tight">{title}</h2>
+          )}
           {action}
         </div>
       )}
-      {children}
+      {show && <div id={id}>{children}</div>}
     </section>
+  );
+}
+
+/** Zeile "Bezeichnung … Wert" für Aufstellungen. */
+export function Row({ label, value, strong, tone, sub }: { label: ReactNode; value: ReactNode; strong?: boolean; tone?: 'good' | 'bad' | 'muted'; sub?: ReactNode }) {
+  const color = tone === 'good' ? 'text-good' : tone === 'bad' ? 'text-bad' : tone === 'muted' ? 'text-muted' : '';
+  return (
+    <div className={`flex items-baseline justify-between gap-3 py-1.5 ${strong ? 'border-t border-line pt-2 font-semibold' : ''}`}>
+      <span className="min-w-0 text-sm">{label}{sub && <span className="block text-[12px] font-normal text-muted">{sub}</span>}</span>
+      <span className={`num shrink-0 text-sm ${strong ? 'font-display text-base font-bold' : 'font-medium'} ${color}`}>{value}</span>
+    </div>
+  );
+}
+
+export function Select<T extends string | number>({ id, value, options, onChange, label, disabled }: {
+  id: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label?: string; disabled?: boolean;
+}) {
+  return (
+    <select id={id} aria-label={label} disabled={disabled} value={String(value)}
+      onChange={(e) => onChange(options.find((o) => String(o.value) === e.target.value)!.value)}
+      className="max-w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-sm disabled:opacity-50">
+      {options.map((o) => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}
+    </select>
   );
 }
 
@@ -62,6 +100,12 @@ export const GLOSSARY: Record<string, string> = {
   Kaufnebenkosten: 'Kosten zusätzlich zum Kaufpreis, in Österreich vor allem Grunderwerbsteuer, Grundbucheintragung, Vertragserrichtung und Maklerprovision.',
   Sondertilgung: 'Eine zusätzliche Zahlung neben der normalen Rate. Sie senkt die Restschuld sofort und spart Zinsen. Manche Banken verlangen dafür eine Gebühr.',
   Referenzzins: 'Ein öffentlicher Marktzins wie der EURIBOR. Der variable Kreditzins folgt ihm zu festen Terminen.',
+  'Hauptmietzins': 'Die reine Miete ohne Betriebskosten und Umsatzsteuer.',
+  'Cashflow': 'Was am Monatsende wirklich übrig bleibt: Mieteinnahmen minus deine Kosten minus Kreditrate.',
+  'Bruttomietrendite': 'Jahres-Nettomiete geteilt durch den Kaufpreis. Schnell zu vergleichen, berücksichtigt aber keine Kosten.',
+  'Nettomietrendite': 'Jahres-Nettomiete nach laufenden Vermieterkosten und Leerstand, geteilt durch die Gesamtinvestition. Vor Finanzierung und Steuern.',
+  'Cash-on-Cash-Rendite': 'Jährlicher Cashflow geteilt durch deine eingesetzten Eigenmittel.',
+  'Gesamtinvestition': 'Kaufpreis plus Kaufnebenkosten, Renovierung und sonstige Anfangskosten.',
   Bankaufschlag: 'Der fixe Zuschlag der Bank auf den Referenzzins. Referenzzins + Aufschlag = dein variabler Zinssatz.',
 };
 
@@ -121,16 +165,18 @@ interface NumberBoxProps {
   onError?: (msg: string | null) => void;
   width?: string;
   ariaLabel?: string;
+  /** Ohne Tausenderpunkt, z. B. für Jahreszahlen. */
+  plain?: boolean;
 }
 
 const fmt = (v: number, decimals: number) =>
   new Intl.NumberFormat('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: decimals }).format(v);
 
 /** Zahleneingabe mit deutscher Schreibweise und sofortiger Prüfung. */
-export function NumberBox({ id, value, min, max, onChange, unit, decimals = 0, onError, width = 'w-32', ariaLabel }: NumberBoxProps) {
+export function NumberBox({ id, value, min, max, onChange, unit, decimals = 0, onError, width = 'w-32', ariaLabel, plain }: NumberBoxProps) {
   const [text, setText] = useState<string | null>(null);
   const [bad, setBad] = useState(false);
-  const shown = text ?? fmt(value, decimals);
+  const shown = text ?? (plain ? String(value) : fmt(value, decimals));
   const report = (msg: string | null) => {
     setBad(!!msg);
     onError?.(msg);
@@ -149,7 +195,7 @@ export function NumberBox({ id, value, min, max, onChange, unit, decimals = 0, o
         onChange={(e) => {
           const t = e.target.value;
           setText(t);
-          const n = parseNumber(t);
+          const n = plain ? Number(t.trim()) : parseNumber(t);
           if (!Number.isFinite(n)) return report('Bitte eine Zahl eingeben.');
           if (n < min || n > max) return report(`Erlaubt sind ${fmt(min, decimals)} bis ${fmt(max, decimals)} ${unit}.`);
           report(null);
@@ -160,7 +206,7 @@ export function NumberBox({ id, value, min, max, onChange, unit, decimals = 0, o
           report(null);
         }}
       />
-      <span className="pl-1 text-sm text-muted">{unit}</span>
+      {unit && <span className="whitespace-nowrap pl-1 text-sm text-muted">{unit}</span>}
     </span>
   );
 }
