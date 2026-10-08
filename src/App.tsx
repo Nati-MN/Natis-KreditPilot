@@ -214,6 +214,9 @@ export default function App() {
             Gebühren- und Steuersätze: Österreich, Stand Oktober 2026. Die Steuerberechnung ist eine vereinfachte Schätzung. Kredit Pilot ersetzt kein verbindliches Angebot und keine Rechts-, Steuer- oder Anlageberatung.
           </footer>
           <p className="text-center text-[12px] text-muted">This is a Website created by: "Nati Man"</p>
+          <p className="text-center text-[11px] leading-snug text-muted">
+            <strong>Impressum:</strong> Private, nicht kommerzielle Webseite ohne Unternehmen. Keine Werbung, keine Einnahmen. Alle Berechnungen ohne Gewähr.
+          </p>
         </main>
       </div>
 
