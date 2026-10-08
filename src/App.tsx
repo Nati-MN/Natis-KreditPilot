@@ -205,7 +205,7 @@ export default function App() {
         </div>
       </header>
 
-      <nav className="mb-4" aria-label="Rechner">
+      <nav className="mb-4" aria-label="Rechner" hidden={section === 'start'}>
         <Segmented label="Rechner" value={section} onChange={(v) => patch({ section: v })} options={nav} />
       </nav>
 
@@ -320,7 +320,7 @@ export default function App() {
       </div>
 
       {/* Umschalter links unten: vereinfachte oder erweiterte Ansicht */}
-      <div className={`fixed left-3 z-30 lg:bottom-4 lg:left-4 ${section === 'start' ? 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]' : 'bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]'}`}>
+      <div hidden={section === 'start'} className="fixed left-3 z-30 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:bottom-4 lg:left-4">
         <div role="radiogroup" aria-label="Ansicht" className="inline-flex gap-1 rounded-full border border-line bg-surface p-1 shadow-lg">
           {([['einfach', 'Vereinfachte Ansicht'], ['erweitert', 'Erweiterte Ansicht']] as const).map(([value, label]) => (
             <button key={value} type="button" role="radio" aria-checked={s.viewMode === value} onClick={() => patch({ viewMode: value })}
