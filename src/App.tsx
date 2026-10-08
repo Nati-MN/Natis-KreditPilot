@@ -9,6 +9,7 @@ import { Scenarios } from './components/Scenarios';
 import { FinancePanel, LoanModelPanel } from './components/Settings';
 import { Badge, Button, InfoTip, NumberBox, ResultCard, Segmented } from './components/ui';
 import { analyze } from './lib/analysis';
+import logo from './logo.png';
 import { pdfEuro } from './lib/export';
 import { duration, euro, percent } from './lib/format';
 import { balanceAfterYears, extraEffect, hasExtras } from './lib/loan';
@@ -98,11 +99,14 @@ export default function App() {
   return (
     <div className="mx-auto max-w-[1360px] px-4 pb-36 pt-4 sm:px-6 lg:pb-20">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-2xl font-bold leading-none tracking-tight">
-            Kredit <span className="text-accent">Pilot</span>
-          </h1>
-          <p className="mt-1 text-sm text-muted">Immobilienkredit und Vermietung einfach verstehen</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <img src={logo} alt="" width={48} height={48} className="h-12 w-12 shrink-0" />
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-bold leading-none tracking-tight">
+              Kredit <span className="text-accent">Pilot</span>
+            </h1>
+            <p className="mt-1 text-sm text-muted">Immobilienkredit und Vermietung einfach verstehen</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => patch({ ...DEFAULT_STATE, viewMode: 'erweitert', section: s.section, manualLoan: true, manualLoanAmount: 119000 })}>Beispiel: 119.000 € Kredit</Button>
