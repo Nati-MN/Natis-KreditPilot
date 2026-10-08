@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Layout: Einstellungen links (sticky), Ergebnisse rechts; mobil gestapelt mit fixer Raten-Leiste. */
+:root {
+  --bg: #f1f4f8;
+  --surface: #ffffff;
+  --surface-2: #e8edf3;
+  --line: #d5dde7;
+  --fg: #13202f;
+  --muted: #58697c;
+  --accent: #1557c0;
+  --accent-fg: #ffffff;
+  --accent-soft: #dfeafb;
+  --zins: #e07a1f;
+  --tilgung: #2f6fde;
+  --rest: #0d8a82;
+  --alt: #7a4bd6;
+  --good: #17805a;
+  --bad: #c0392b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0c121a; --surface: #141c27; --surface-2: #1c2634; --line: #2a3647; --fg: #e7edf4;
+    --muted: #93a3b6; --accent: #78aeff; --accent-fg: #0b1626; --accent-soft: #1b2c47;
+    --zins: #f39a4a; --tilgung: #6ea3f7; --rest: #41c8bd; --alt: #ab8ff6; --good: #4fc596; --bad: #f0796b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #0c121a; --surface: #141c27; --surface-2: #1c2634; --line: #2a3647; --fg: #e7edf4;
+  --muted: #93a3b6; --accent: #78aeff; --accent-fg: #0b1626; --accent-soft: #1b2c47;
+  --zins: #f39a4a; --tilgung: #6ea3f7; --rest: #41c8bd; --alt: #ab8ff6; --good: #4fc596; --bad: #f0796b;
+  color-scheme: dark;
+}
+:root[data-theme='light'] { color-scheme: light; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* Schieberegler */
+input[type='range'].kp-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer;
+}
+input[type='range'].kp-range::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 0%), var(--surface-2) var(--fill, 0%));
+}
+input[type='range'].kp-range::-moz-range-track { height: 6px; border-radius: 999px; background: var(--surface-2); }
+input[type='range'].kp-range::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--accent); }
+input[type='range'].kp-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--accent); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+input[type='range'].kp-range::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent);
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recharts-wrapper *:focus { outline: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
