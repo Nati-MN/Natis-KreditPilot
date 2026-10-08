@@ -106,6 +106,17 @@ export const GLOSSARY: Record<string, string> = {
   'Nettomietrendite': 'Jahres-Nettomiete nach laufenden Vermieterkosten und Leerstand, geteilt durch die Gesamtinvestition. Vor Finanzierung und Steuern.',
   'Cash-on-Cash-Rendite': 'Jährlicher Cashflow geteilt durch deine eingesetzten Eigenmittel.',
   'Gesamtinvestition': 'Kaufpreis plus Kaufnebenkosten, Renovierung und sonstige Anfangskosten.',
+  'Effektivzins': 'Der Jahreszins inklusive aller Kreditkosten wie Bearbeitungsgebühr, Kontoführung, Pfandrechtseintragung und Schätzgebühr. Er macht Angebote vergleichbar. Berechnet nach der EU-Formel aus allen Zahlungen.',
+  'Nominalzins': 'Der reine Zinssatz für das geliehene Geld, ohne Gebühren.',
+  'Ratentilgung': 'Du zahlst jeden Monat gleich viel Kapital zurück. Die Rate ist am Anfang höher und sinkt dann, die Zinsen sind insgesamt niedriger.',
+  'Endfällig': 'Während der Laufzeit zahlst du nur Zinsen. Der gesamte Kreditbetrag wird am Ende auf einmal fällig.',
+  'Tilgungsfreie Zeit': 'Am Anfang zahlst du nur Zinsen und noch keine Tilgung. Die Restschuld bleibt in dieser Zeit gleich.',
+  'Anfangstilgung': 'Anteil des Kredits, den du im ersten Jahr zurückzahlst. Zins plus Anfangstilgung ergeben die Rate, die Laufzeit folgt daraus.',
+  'Zinsmethode': 'Legt fest, wie Zinstage gezählt werden. 30/360 rechnet jeden Monat mit 30 Tagen. Taggenaue Methoden zählen echte Kalendertage, bei act/360 fallen dadurch etwas mehr Zinsen an.',
+  'Schuldendienstquote': 'Anteil deines Nettoeinkommens, der für alle Kreditraten draufgeht.',
+  'Beleihungsquote': 'Kreditbetrag im Verhältnis zum Wert der Immobilie.',
+  'Zinsobergrenze': 'Vertraglich vereinbarter Höchstzins (Cap). Der variable Zins steigt nie darüber.',
+  'Entschädigung': 'Gebühr der Bank für vorzeitige Rückzahlung. In der Fixzinsphase üblicherweise höchstens 1 %, im letzten Jahr 0,5 %. Bei variablem Zins fällt bei Einhaltung der Kündigungsfrist keine an. Prüfe deinen Vertrag.',
   Bankaufschlag: 'Der fixe Zuschlag der Bank auf den Referenzzins. Referenzzins + Aufschlag = dein variabler Zinssatz.',
 };
 
@@ -287,4 +298,57 @@ export function Button({ children, onClick, variant = 'ghost', disabled, type = 
       {children}
     </button>
   );
+}
+
+/** Datumseingabe (Tag). */
+export function DateBox({ id, value, onChange, label, min, max, month }: { id: string; value: string; onChange: (v: string) => void; label?: string; min?: string; max?: string; month?: boolean }) {
+  return (
+    <input id={id} type={month ? 'month' : 'date'} aria-label={label} value={value} min={min} max={max}
+      onChange={(e) => onChange(e.target.value)}
+      className="num w-40 max-w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm outline-none focus:border-accent" />
+  );
+}
+
+/** Zeile mit Bezeichnung links und beliebigem Eingabeelement rechts. */
+export function Field({ label, htmlFor, children, hint }: { label: ReactNode; htmlFor?: string; children: ReactNode; hint?: ReactNode }) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label htmlFor={htmlFor} className="min-w-0 text-sm font-medium">{label}</label>
+        {children}
+      </div>
+      {hint && <p className="mt-1 text-[13px] text-muted">{hint}</p>}
+    </div>
+  );
+}
+
+/** Bewertung von 1 bis 5 als Balken mit Zahl. */
+export function ScoreBar({ value, label }: { value: number; label: string }) {
+  const v = Math.max(0, Math.min(5, value));
+  return (
+    <span className="inline-flex items-center gap-2" role="img" aria-label={`${label}: ${v.toLocaleString('de-DE')} von 5`}>
+      <span className="inline-flex h-2 w-16 overflow-hidden rounded-full bg-surface2"><span className="bg-accent" style={{ width: `${(v / 5) * 100}%` }} /></span>
+      <span className="num text-[13px] font-medium">{v.toLocaleString('de-DE', { maximumFractionDigits: 1 })}</span>
+    </span>
+  );
+}
+
+export function StatusPill({ status }: { status: 'ok' | 'knapp' | 'kritisch' }) {
+  const map = { ok: ['bg-good', 'In Ordnung'], knapp: ['bg-zins', 'Knapp'], kritisch: ['bg-bad', 'Kritisch'] } as const;
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold text-surface ${map[status][0]}`}>{map[status][1]}</span>;
+}
+
+/** Zweispaltiges Layout: Eingaben links (auf großen Bildschirmen fixiert), Ergebnisse rechts. */
+export function TwoCol({ aside, children }: { aside: ReactNode; children: ReactNode }) {
+  return (
+    <div className="grid items-start gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
+      <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pb-16 lg:pr-1">{aside}</aside>
+      <main className="flex min-w-0 flex-col gap-4">{children}</main>
+    </div>
+  );
+}
+
+/** Kurzer Hinweis, dass Werte Annahmen bzw. Beispiele sind. */
+export function Note({ children }: { children: ReactNode }) {
+  return <p className="rounded-xl bg-bg p-3 text-[13px] leading-relaxed text-muted">{children}</p>;
 }

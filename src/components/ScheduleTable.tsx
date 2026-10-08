@@ -1,90 +1,112 @@
-import { useState } from 'react';
-import { buildCsv, buildPdf, saveFile, type PlanView } from '../lib/export';
-import { euro, percent } from '../lib/format';
+import { useMemo, useState } from 'react';
+import { buildReportPdf, buildWorkbook, csvFromTable, formatPlan, MIME, planTable, saveFile, toBlob, type PlanView, type Report } from '../lib/export';
+import { euro } from '../lib/format';
 import type { LoanResult } from '../lib/loan';
-import { Button, Card, Segmented } from './ui';
+import { Button, Card, DateBox, Segmented, Select } from './ui';
 
-export function ScheduleTable({ result, summary }: { result: LoanResult; summary: [string, string][] }) {
+/** Vollständiger Tilgungsplan mit Filter, Suche, Markierungen und Export. */
+export function ScheduleTable({ result, report, scenarios = [] }: { result: LoanResult; report: Omit<Report, 'view'>; scenarios?: { name: string; result: LoanResult }[] }) {
   const [view, setView] = useState<PlanView>('jahr');
+  const [year, setYear] = useState(0);
+  const [search, setSearch] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  const table = useMemo(() => planTable(result, view), [result, view]);
+  const text = useMemo(() => formatPlan(table), [table]);
+  const yearCount = result.years.length;
+  const activeYear = year > yearCount ? 0 : year;
+  const visible = table.raw.map((_, i) => i).filter((i) => (view === 'jahr' || activeYear === 0 || table.marks[i].year === activeYear) && (view === 'jahr' || !search || table.marks[i].date.startsWith(search)));
   const showExtra = result.totalExtra > 0;
-  const doExport = async (kind: 'csv' | 'pdf') => {
+  const showFees = result.totalFees > 0;
+  const hidden = new Set<string>([...(showExtra ? [] : ['Sondertilgung']), ...(showFees ? [] : ['Gebühren'])]);
+  const cols = table.head.map((h, i) => ({ h, i })).filter((c) => !hidden.has(c.h));
+  const hasDates = result.rows[0]?.date !== '';
+
+  const doExport = async (kind: 'csv' | 'pdf' | 'xlsx') => {
     setMessage(null);
     try {
-      const blob = kind === 'csv' ? buildCsv(result, view) : buildPdf(result, view, summary);
-      setMessage(await saveFile(`kreditpilot-tilgungsplan-${view}.${kind}`, blob));
+      const full: Report = { ...report, view };
+      const blob = kind === 'csv' ? toBlob(csvFromTable(table.head, text), MIME.csv)
+        : kind === 'pdf' ? toBlob(buildReportPdf(full), MIME.pdf)
+        : toBlob(buildWorkbook(full, scenarios), MIME.xlsx);
+      setMessage(await saveFile(`kredit-pilot-${kind === 'csv' ? `tilgungsplan-${view}` : 'bericht'}.${kind}`, blob));
     } catch {
       setMessage('Der Export konnte nicht erstellt werden.');
     }
   };
-  const th = 'sticky top-0 z-10 bg-surface2 px-3 py-2 text-right text-[12px] font-semibold uppercase tracking-wide text-muted first:text-left';
-  const td = 'num whitespace-nowrap px-3 py-1.5 text-right first:text-left';
+
+  const th = 'sticky top-0 z-10 whitespace-nowrap bg-surface2 px-3 py-2 text-right text-[12px] font-semibold uppercase tracking-wide text-muted';
+  const td = 'num whitespace-nowrap px-3 py-1.5 text-right';
+  const color = (h: string) => (h === 'Zinsen' ? 'text-zins' : h === 'Tilgung' ? 'text-tilgung' : h === 'Restschuld' ? 'font-medium' : '');
+  const unit = (i: number) => (table.kinds[i] === 'eur' ? ' €' : table.kinds[i] === 'rate' ? ' %' : '');
+  const firstNum = view === 'jahr' ? 1 : 2;
+
   return (
     <Card
       title="Tilgungsplan"
       action={
         <div className="flex flex-wrap items-center gap-2">
           <Segmented label="Ansicht" size="sm" value={view} onChange={setView} options={[{ value: 'jahr', label: 'Jahre' }, { value: 'monat', label: 'Monate' }]} />
-          <Button onClick={() => doExport('csv')}>CSV exportieren</Button>
-          <Button onClick={() => doExport('pdf')}>PDF exportieren</Button>
+          <Button onClick={() => doExport('pdf')}>PDF-Bericht</Button>
+          <Button onClick={() => doExport('xlsx')}>Excel</Button>
+          <Button onClick={() => doExport('csv')}>CSV</Button>
         </div>
       }
     >
+      {view === 'monat' && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <label className="flex items-center gap-2" htmlFor="plan-jahr">Jahr
+            <Select id="plan-jahr" value={activeYear} onChange={(v) => { setYear(v); setSearch(''); }}
+              options={[{ value: 0, label: 'Alle Jahre' }, ...Array.from({ length: yearCount }, (_, i) => ({ value: i + 1, label: `Jahr ${i + 1}${hasDates ? ` (${result.rows[i * 12]?.date.slice(0, 4) ?? ''})` : ''}` }))]} />
+          </label>
+          {hasDates && (
+            <label className="flex items-center gap-2" htmlFor="plan-suche">Monat suchen
+              <DateBox month id="plan-suche" value={search} min={result.rows[0].date.slice(0, 7)} max={result.endDate.slice(0, 7)} onChange={(v) => { setSearch(v); setYear(0); }} />
+              {search && <button type="button" aria-label="Suche löschen" onClick={() => setSearch('')} className="rounded-lg px-2 py-1 text-muted hover:text-bad">✕</button>}
+            </label>
+          )}
+        </div>
+      )}
       {message && <p role="status" className="mb-2 text-[13px] text-muted">{message}</p>}
-      <div className="max-h-[560px] overflow-auto rounded-xl border border-line">
+      <div className="max-h-[600px] overflow-auto rounded-xl border border-line">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr>
-              {view === 'monat' && <th className={th}>Monat</th>}
-              <th className={th}>Jahr</th>
-              <th className={th}>{view === 'monat' ? 'Monatsrate' : 'Zahlungen'}</th>
-              <th className={th}>Zinsen</th>
-              <th className={th}>Tilgung</th>
-              {showExtra && <th className={th}>Sondertilgung</th>}
-              <th className={th}>Restschuld</th>
-              <th className={th}>Zinssatz</th>
-            </tr>
+            <tr>{cols.map((c) => <th key={c.h} className={`${th} ${c.i < firstNum ? 'text-left' : ''}`}>{c.h}</th>)}</tr>
           </thead>
           <tbody>
-            {view === 'monat'
-              ? result.rows.map((r) => (
-                  <tr key={r.month} className={`border-t border-line ${r.month % 12 === 0 ? 'border-b-2' : ''}`}>
-                    <td className={td}>{r.month}</td>
-                    <td className={td}>{r.year}</td>
-                    <td className={td}>{euro(r.payment)}</td>
-                    <td className={`${td} text-zins`}>{euro(r.interest)}</td>
-                    <td className={`${td} text-tilgung`}>{euro(r.principal)}</td>
-                    {showExtra && <td className={td}>{r.extra > 0 ? euro(r.extra) : '–'}</td>}
-                    <td className={`${td} font-medium`}>{euro(r.balance)}</td>
-                    <td className={td}>{percent(r.rate, 3)}</td>
-                  </tr>
-                ))
-              : result.years.map((y) => (
-                  <tr key={y.year} className="border-t border-line">
-                    <td className={td}>{y.year}</td>
-                    <td className={td}>{euro(y.payment)}</td>
-                    <td className={`${td} text-zins`}>{euro(y.interest)}</td>
-                    <td className={`${td} text-tilgung`}>{euro(y.principal)}</td>
-                    {showExtra && <td className={td}>{y.extra > 0 ? euro(y.extra) : '–'}</td>}
-                    <td className={`${td} font-medium`}>{euro(y.balance)}</td>
-                    <td className={td}>{percent(y.rate, 3)}</td>
-                  </tr>
-                ))}
+            {visible.length === 0 && <tr><td colSpan={cols.length} className="px-3 py-4 text-center text-muted">In diesem Monat gibt es keine Zahlung.</td></tr>}
+            {visible.map((i) => {
+              const m = table.marks[i];
+              return (
+                <tr key={i} className={`border-t border-line ${m.rateChanged ? 'bg-accentsoft' : ''}`}>
+                  {cols.map((c) => (
+                    <td key={c.h} className={`${td} ${c.i < firstNum ? 'text-left' : ''} ${color(c.h)} ${c.h === 'Sondertilgung' && m.extra ? 'font-semibold text-good' : ''} ${c.h === 'Zinssatz %' && m.rateChanged ? 'font-semibold text-accent' : ''}`}>
+                      {c.h === 'Sondertilgung' && !m.extra ? '–' : `${text[i][c.i]}${unit(c.i)}`}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-line bg-surface2 font-semibold">
-              <td className={td} colSpan={view === 'monat' ? 2 : 1}>Summe</td>
-              <td className={td}>{euro(result.totalPaid - result.totalExtra)}</td>
-              <td className={td}>{euro(result.totalInterest)}</td>
-              <td className={td}>{euro(result.totalPaid - result.totalInterest - result.totalExtra)}</td>
-              {showExtra && <td className={td}>{euro(result.totalExtra)}</td>}
-              <td className={td}>{euro(0)}</td>
-              <td className={td} />
-            </tr>
-          </tfoot>
+          {(view === 'jahr' || (activeYear === 0 && !search)) && (
+            <tfoot>
+              <tr className="border-t-2 border-line bg-surface2 font-semibold">
+                {cols.map((c, n) => {
+                  const total: Record<string, number> = {
+                    Raten: result.totalPaid - result.totalExtra, Rate: result.totalPaid - result.totalExtra, Zinsen: result.totalInterest,
+                    Tilgung: result.totalPaid - result.totalInterest - result.totalExtra, Sondertilgung: result.totalExtra,
+                    Gebühren: result.rows.reduce((s, r) => s + r.fees, 0), 'Zahlungen gesamt': result.rows.reduce((s, r) => s + r.total, 0), 'Zahlung gesamt': result.rows.reduce((s, r) => s + r.total, 0),
+                  };
+                  return <td key={c.h} className={`${td} ${n === 0 ? 'text-left' : ''}`}>{n === 0 ? 'Summe' : c.h in total ? euro(total[c.h]) : ''}</td>;
+                })}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
-      <p className="mt-2 text-[13px] text-muted">{view === 'jahr' ? 'Zinssatz und Restschuld jeweils am Jahresende.' : 'Restschuld jeweils nach der Zahlung.'}</p>
+      <p className="mt-2 text-[13px] text-muted">
+        Blau hinterlegte Zeilen: Der Zinssatz ändert sich. Grün: Sondertilgung. {view === 'jahr' ? 'Zinssatz und Restschuld jeweils am Jahresende.' : 'Restschuld jeweils nach der Zahlung.'}
+        {result.totalFees > 0 ? ' Einmalige Kreditkosten zu Beginn stehen nicht im Plan, aber in den Gesamtkosten.' : ''}
+      </p>
     </Card>
   );
 }

@@ -1,5 +1,5 @@
 /**
- * NATI Immobilien-Investment – Berechnungslogik (ohne UI).
+ * Immobilien-Investment – Berechnungslogik (ohne UI).
  * Grundsätze:
  *  - Durchlaufende Posten (Betriebskosten, Heizung, Umsatzsteuer) sind keine Einnahmen des Vermieters.
  *  - Laufende Kosten werden gleichmäßig auf Monate verteilt, damit Monat × 12 = Jahr gilt.
@@ -388,7 +388,8 @@ export function project(i: InvestInput, loan: LoanResult): Projection {
     }
     deductible[y] += vacancyCosts;
     const row = loan.rows[m - 1];
-    const payment = row?.payment ?? 0;
+    // Kreditgebühren sind Teil der Kreditbelastung.
+    const payment = (row?.payment ?? 0) + (row?.fees ?? 0);
     const extra = row?.extra ?? 0;
     months.push({
       month: m, year: y, income, landlordCosts, vacancyCosts, oneTime, payment,

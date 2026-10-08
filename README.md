@@ -1,27 +1,14 @@
-# NATI KreditPilot – Immobilienkredit und Vermietung einfach verstehen
+# Kredit Pilot
 
-React + TypeScript + Tailwind CSS + Recharts (Vite).
+Kredit-, Finanzierungs- und Vermietungsrechner für Österreich. React + TypeScript + Tailwind CSS + Recharts (Vite).
 
     npm install
     npm run dev      # Entwicklungsserver
-    npm test         # Tests der Berechnungslogik (Vitest)
-    npm run build    # erzeugt eine einzelne, eigenständige dist/index.html
+    npm test         # 71 Tests der Berechnungslogik (Vitest)
+    npm run build    # prüft Typen und baut nach dist/
 
-## Berechnungslogik (ohne UI, getestet)
-- `src/lib/loan.ts` – Kredit: Annuität, Fix/variabel, Zinsänderungen, Sondertilgungen
-- `src/lib/purchase.ts` – Kaufnebenkosten Österreich als Einzelposten
-- `src/lib/invest.ts` – Miete/USt, Kosten, Cashflow, Renditen, Steuer, Prognose, Break-even-Formeln
-- `src/lib/analysis.ts` – verbindet Kredit und Investment (`analyze`), Break-even-Suche, Vergleichskennzahlen
-- `src/lib/state.ts` – Eingaben, Standardwerte, Finanzierung (`financing`), vereinfachte Ansicht (`effectiveState`), Speicherung
-- `src/lib/export.ts` – CSV- und PDF-Export
-- `src/lib/*.test.ts` – 28 Tests
+Bereiche: Kreditrechner (Tilgungsplan, Sondertilgung, Zins-Simulator, Meilensteine), Vergleich (Kreditangebote, Varianten, Szenarien), Leistbarkeit, Umschuldung, Tilgen oder investieren, Immobilie vermieten. Unten links lässt sich zwischen vereinfachter und erweiterter Ansicht wechseln.
 
-## Oberfläche
-- `src/App.tsx` – Aufbau, Bereichswahl, Umschalter vereinfachte/erweiterte Ansicht (links unten)
-- `src/components/Settings.tsx` – Immobilie, Kaufnebenkosten, Kreditmodell
-- `src/components/InvestSettings.tsx` – Mieteinnahmen, Kosten, Szenario, Steuern
-- `src/components/InvestViews.tsx` – Dashboard, Monatsrechnung, Break-even, Prognose-Tabelle, Immobilienvergleich
-- `src/components/InvestCharts.tsx` – Investment-Diagramme
-- `src/components/Charts.tsx`, `ScheduleTable.tsx`, `Comparison.tsx`, `ExtraPanel.tsx`, `Scenarios.tsx`, `ui.tsx`
+Aufbau, Formeln, Quellen, Konkurrenzvergleich und offene Punkte stehen in `docs/ANALYSE.md`.
 
-Gebühren- und Steuersätze: Österreich, Stand Oktober 2026. Steuerwerte sind vereinfachte Schätzungen.
+Alle Berechnungen laufen im Browser. Eingaben werden nur lokal gespeichert. Gebühren-, Steuersätze und Orientierungswerte: Österreich, Stand Oktober 2026. Ergebnisse sind Modellrechnungen und kein verbindliches Angebot.

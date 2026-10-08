@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { breakEven, compareMetrics, type Analysis } from '../lib/analysis';
-import { csvFromTable, pdfEuro, pdfFromTable, saveFile } from '../lib/export';
+import { csvFromTable, MIME, pdfFromTable, saveFile, toBlob, xlsxFromTable } from '../lib/export';
 import { euro, number2, percent } from '../lib/format';
 import { calculateLoan } from '../lib/loan';
 import { project } from '../lib/invest';
@@ -178,19 +178,21 @@ function ProjectionTable({ a }: { a: Analysis }) {
     [p, view, taxOn]);
   const cfCol = head.indexOf('Cashflow');
   const firstNum = view === 'jahr' ? 1 : 2;
-  const doExport = async (kind: 'csv' | 'pdf') => {
+  const doExport = async (kind: 'csv' | 'pdf' | 'xlsx') => {
     setMessage(null);
     try {
       const summary: [string, string][] = [
-        ['Kaufpreis / Gesamtinvestition', pdfEuro(`${euro(a.s.price)} / ${euro(a.fin.totalInvestment)}`)],
-        ['Kredit / Eigenmittel', pdfEuro(`${euro(a.fin.loan)} / ${euro(a.fin.ownFunds)}`)],
-        ['Nettokaltmiete / Kreditrate', pdfEuro(`${euro(a.rent.income)} / ${euro(a.month.payment)}`)],
-        ['Cashflow pro Monat (vor Steuern)', pdfEuro(signed(a.month.cashflow))],
+        ['Kaufpreis / Gesamtinvestition', `${euro(a.s.price)} / ${euro(a.fin.totalInvestment)}`],
+        ['Kredit / Eigenmittel', `${euro(a.fin.loan)} / ${euro(a.fin.ownFunds)}`],
+        ['Nettokaltmiete / Kreditrate', `${euro(a.rent.income)} / ${euro(a.month.payment)}`],
+        ['Cashflow pro Monat (vor Steuern)', signed(a.month.cashflow)],
         ['Brutto- / Nettomietrendite', `${percent(a.yields.grossOnPrice, 2)} / ${percent(a.yields.netOnTotal, 2)}`],
       ];
-      const blob = kind === 'csv' ? csvFromTable(head, body)
-        : pdfFromTable('Kredit Pilot – Immobilien-Investment', summary, head, body, 'Modellrechnung mit eigenen Annahmen zu Miete, Leerstand, Zinsen, Wert und Steuern. Keine Prognose und keine Beratung.');
-      setMessage(await saveFile(`kreditpilot-immobilie-prognose-${view}.${kind}`, blob));
+      const note = 'Modellrechnung mit eigenen Annahmen zu Miete, Leerstand, Zinsen, Wert und Steuern. Keine Prognose und keine Beratung.';
+      const blob = kind === 'csv' ? toBlob(csvFromTable(head, body), MIME.csv)
+        : kind === 'xlsx' ? toBlob(xlsxFromTable('Prognose', head, body), MIME.xlsx)
+        : toBlob(pdfFromTable('Immobilien-Investment', summary, head, body, note), MIME.pdf);
+      setMessage(await saveFile(`kredit-pilot-immobilie-prognose-${view}.${kind}`, blob));
     } catch {
       setMessage('Der Export konnte nicht erstellt werden.');
     }
@@ -200,8 +202,9 @@ function ProjectionTable({ a }: { a: Analysis }) {
     <Card title="Prognose-Tabelle" action={
       <div className="flex flex-wrap items-center gap-2">
         <Segmented label="Ansicht" size="sm" value={view} onChange={setView} options={[{ value: 'jahr', label: 'Jahre' }, { value: 'monat', label: 'Monate' }]} />
-        <Button onClick={() => doExport('csv')}>CSV exportieren</Button>
-        <Button onClick={() => doExport('pdf')}>PDF exportieren</Button>
+        <Button onClick={() => doExport('pdf')}>PDF</Button>
+        <Button onClick={() => doExport('xlsx')}>Excel</Button>
+        <Button onClick={() => doExport('csv')}>CSV</Button>
       </div>}>
       {message && <p role="status" className="mb-2 text-[13px] text-muted">{message}</p>}
       <div className="max-h-[560px] overflow-auto rounded-xl border border-line">

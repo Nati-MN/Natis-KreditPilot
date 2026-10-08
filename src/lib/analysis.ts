@@ -17,6 +17,8 @@ export interface Analysis {
   month: TypicalMonth;
   yields: Yields;
   projection: Projection;
+  /** Laufende Kreditgebühren pro Monat. */
+  fees: number;
   variable: boolean;
   /** Typischer Monat im ersten Jahr nach der Fixzinsperiode (nur bei variablem Zins). */
   afterFix: TypicalMonth | null;
@@ -53,21 +55,23 @@ export function toInvestInput(s: AppState, fin: Financing): InvestInput {
 }
 
 /** Schnelle Variante ohne Prognose, für Break-even-Suchen. */
-function quick(raw: AppState) {
+function quick(raw: AppState, withApr = false) {
   const s = effectiveState(raw);
   const fin = financing(s);
-  const loanInput = toLoanInput(s);
-  const loan = calculateLoan(loanInput);
+  const loanInput = toLoanInput(s, fin);
+  const loan = calculateLoan(loanInput, withApr);
   const invest = toInvestInput(s, fin);
-  const month = typicalMonth(invest, loan.firstPayment, s.extra.monthlyAmount);
-  return { s, fin, loanInput, loan, invest, month };
+  // Kreditbelastung pro Monat: Rate (bei längeren Intervallen anteilig) plus laufende Kreditgebühren.
+  const fees = loanInput.monthlyFees ?? 0;
+  const month = typicalMonth(invest, loan.monthlyBurden + fees, s.extra.monthlyAmount);
+  return { s, fin, loanInput, loan, invest, month, fees };
 }
 
 export function analyze(raw: AppState): Analysis {
-  const q = quick(raw);
+  const q = quick(raw, true);
   const { s, loan, invest } = q;
   const variable = s.mode === 'variabel' && s.fixYears < s.termYears;
-  const afterFix = variable && loan.paymentAfterFix !== null ? typicalMonth(invest, loan.paymentAfterFix, s.extra.monthlyAmount, Math.min(s.fixYears + 1, s.termYears)) : null;
+  const afterFix = variable && loan.paymentAfterFix !== null ? typicalMonth(invest, loan.paymentAfterFix / (s.interval || 1) + q.fees, s.extra.monthlyAmount, Math.min(s.fixYears + 1, s.termYears)) : null;
   return { ...q, rent: rentBreakdown(invest.rent), yields: yields(invest, q.month), projection: project(invest, loan), variable, afterFix };
 }
 
@@ -103,8 +107,8 @@ export function breakEven(raw: AppState, a: Analysis): BreakEven {
     const year = Math.min(a.s.fixYears + 1, a.s.termYears);
     const cfAtRate = (rate: number) => {
       const st: AppState = { ...a.s, useReference: false, rateChanges: [], variableRate: rate };
-      const loan = calculateLoan(toLoanInput(st));
-      return typicalMonth(a.invest, loan.paymentAfterFix ?? loan.firstPayment, st.extra.monthlyAmount, year).cashflow;
+      const loan = calculateLoan(toLoanInput(st), false);
+      return typicalMonth(a.invest, (loan.paymentAfterFix ?? loan.firstPayment) / (st.interval || 1) + a.fees, st.extra.monthlyAmount, year).cashflow;
     };
     maxRate = bisectMax(cfAtRate, 0, 25);
     maxRateLabel = `variabler Zins ab Jahr ${year}`;

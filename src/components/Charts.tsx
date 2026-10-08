@@ -98,28 +98,30 @@ export function SplitChart({ result }: { result: LoanResult }) {
 
 export function PaymentChart({ result, fixMonths, variable }: { result: LoanResult; fixMonths: number; variable: boolean }) {
   const data = useMemo(() => {
-    const rows = result.rows;
-    // Die letzte Rate ist nur eine Ausgleichszahlung und würde die Kurve verzerren.
-    const visible = rows.length > 1 && rows[rows.length - 1].payment < rows[rows.length - 2].payment ? rows.slice(0, -1) : rows;
+    const rows = result.rows.filter((r) => r.due);
+    // Die letzte Rate ist eine Ausgleichs- oder Schlusszahlung und würde die Kurve verzerren.
+    const last = rows[rows.length - 1];
+    const prev = rows[rows.length - 2];
+    const visible = prev && (last.payment < prev.payment || last.payment > prev.payment * 3) ? rows.slice(0, -1) : rows;
     return visible.map((r) => ({ monat: r.month, Monatsrate: r.payment, zins: r.rate }));
   }, [result]);
   const showFixEnd = variable && fixMonths < result.rows.length;
   const max = Math.max(...data.map((d) => d.Monatsrate), 1);
   return (
-    <Card title={variable ? 'Monatsrate bei variablem Zins' : 'Monatsrate im Zeitverlauf'} action={variable ? <Badge>Prognose</Badge> : undefined}>
+    <Card title={variable ? 'Rate bei variablem Zins' : 'Rate im Zeitverlauf'} action={variable ? <Badge>Prognose</Badge> : undefined}>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 18, right: 8, bottom: 0, left: 0 }}>
             {GRID}
-            <XAxis dataKey="monat" type="number" domain={[1, 'dataMax']} ticks={ticksEvery5Years(data.length)} tickFormatter={(m: number) => `${Math.round(m / 12)}`} {...AXIS} />
+            <XAxis dataKey="monat" type="number" domain={[1, 'dataMax']} ticks={ticksEvery5Years(data.length ? data[data.length - 1].monat : 0)} tickFormatter={(m: number) => `${Math.round(m / 12)}`} {...AXIS} />
             <YAxis tickFormatter={(v: number) => `${Math.round(v)} €`} width={58} domain={[0, Math.ceil((max * 1.15) / 50) * 50]} {...AXIS} axisLine={false} />
             <Tooltip content={<EuroTooltip title={(l) => `Monat ${l} · Jahr ${Math.ceil(Number(l) / 12)}`}
-              footer={(l) => <div className="num mt-1 text-muted">Zinssatz {percent(data[Number(l) - 1]?.zins ?? 0, 3)}</div>} />} />
+              footer={(l) => <div className="num mt-1 text-muted">Zinssatz {percent(data.find((d) => d.monat === Number(l))?.zins ?? 0, 3)}</div>} />} />
             {showFixEnd && (
               <ReferenceLine x={fixMonths + 0.5} stroke="var(--muted)" strokeDasharray="4 4"
                 label={{ value: 'Ende Fixzins', position: 'top', fill: 'var(--muted)', fontSize: 12 }} />
             )}
-            <Line type="stepAfter" dataKey="Monatsrate" stroke="var(--accent)" strokeWidth={2.5} dot={false} animationDuration={ANIM} />
+            <Line type="stepAfter" name="Rate" dataKey="Monatsrate" stroke="var(--accent)" strokeWidth={2.5} dot={false} animationDuration={ANIM} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -136,12 +138,13 @@ function ticksEvery5Years(months: number): number[] {
   return out;
 }
 
-export function CostChart({ principal, interest }: { principal: number; interest: number }) {
+export function CostChart({ principal, interest, fees = 0 }: { principal: number; interest: number; fees?: number }) {
   const data = [
     { name: 'Kreditbetrag', value: principal, color: 'var(--tilgung)' },
     { name: 'Zinskosten', value: interest, color: 'var(--zins)' },
+    ...(fees > 0 ? [{ name: 'Gebühren', value: fees, color: 'var(--alt)' }] : []),
   ];
-  const total = principal + interest;
+  const total = principal + interest + fees;
   return (
     <Card title="Gesamtkosten">
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
@@ -169,6 +172,63 @@ export function CostChart({ principal, interest }: { principal: number; interest
           ))}
         </dl>
       </div>
+    </Card>
+  );
+}
+
+// ---------- Allgemeine Bausteine für Vergleiche ----------
+export const SERIES = ['var(--tilgung)', 'var(--alt)', 'var(--rest)', 'var(--zins)', 'var(--good)', 'var(--bad)', 'var(--muted)', 'var(--accent)'];
+
+/** Mehrere Linien über einer gemeinsamen x-Achse. `data` enthält je Linie einen Schlüssel. */
+export function LinesChart({ title, data, lines, xKey, xLabel, tooltipTitle, action, step, yEuro = true, zeroLine, height = 'h-64' }: {
+  title: ReactNode; data: Record<string, number | string>[]; lines: { key: string; color?: string; dashed?: boolean }[]; xKey: string; xLabel: string;
+  tooltipTitle: (label: string | number) => string; action?: ReactNode; step?: boolean; yEuro?: boolean; zeroLine?: boolean; height?: string;
+}) {
+  return (
+    <Card title={title} action={action}>
+      <Legend items={lines.map((l, i) => ({ color: l.color ?? SERIES[i % SERIES.length], label: l.key }))} />
+      <div className={`mt-2 ${height}`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            {GRID}
+            <XAxis dataKey={xKey} type="number" domain={['dataMin', 'dataMax']} {...AXIS} tickCount={8} allowDecimals={false} />
+            <YAxis tickFormatter={yEuro ? compactEuro : (v: number) => `${Math.round(v)} €`} width={58} {...AXIS} axisLine={false} />
+            <Tooltip content={<EuroTooltip title={tooltipTitle} />} />
+            {zeroLine && <ReferenceLine y={0} stroke="var(--muted)" />}
+            {lines.map((l, i) => (
+              <Line key={l.key} type={step ? 'stepAfter' : 'monotone'} dataKey={l.key} stroke={l.color ?? SERIES[i % SERIES.length]} strokeWidth={2.5}
+                strokeDasharray={l.dashed ? '6 3' : undefined} dot={false} animationDuration={ANIM} connectNulls />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="mt-1 text-center text-[12px] text-muted">{xLabel}</p>
+    </Card>
+  );
+}
+
+/** Gruppierte oder gestapelte Balken je Kategorie. */
+export function BarsChart({ title, data, bars, stacked, foot, action }: {
+  title: ReactNode; data: Record<string, number | string>[]; bars: { key: string; color?: string }[]; stacked?: boolean; foot?: string; action?: ReactNode;
+}) {
+  return (
+    <Card title={title} action={action}>
+      <Legend items={bars.map((b, i) => ({ color: b.color ?? SERIES[i % SERIES.length], label: b.key }))} />
+      <div className="mt-2 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barGap={3}>
+            {GRID}
+            <XAxis dataKey="name" {...AXIS} interval={0} tick={{ fill: 'var(--muted)', fontSize: 11 }} />
+            <YAxis tickFormatter={compactEuro} width={58} {...AXIS} axisLine={false} />
+            <Tooltip cursor={{ fill: 'var(--surface-2)', opacity: 0.6 }} content={<EuroTooltip title={(l) => String(l)} />} />
+            <ReferenceLine y={0} stroke="var(--line)" />
+            {bars.map((b, i) => (
+              <Bar key={b.key} dataKey={b.key} stackId={stacked ? 's' : undefined} fill={b.color ?? SERIES[i % SERIES.length]} radius={stacked ? 0 : [4, 4, 0, 0]} animationDuration={ANIM} />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      {foot && <p className="mt-1 text-center text-[12px] text-muted">{foot}</p>}
     </Card>
   );
 }

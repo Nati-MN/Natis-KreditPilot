@@ -1,7 +1,8 @@
-import { euro, percent } from '../lib/format';
+import { dateDe, euro, percent, years } from '../lib/format';
+import type { Analysis } from '../lib/analysis';
 import { purchaseItemAmount, type PurchaseItem } from '../lib/purchase';
 import { autoLoanAmount, financing, type AppState } from '../lib/state';
-import { Badge, Button, Card, InfoTip, NumberBox, Row, Segmented, Select, SliderField, Toggle } from './ui';
+import { Badge, Button, Card, DateBox, Field, InfoTip, NumberBox, Row, Segmented, Select, SliderField, Toggle } from './ui';
 
 export type Patch = (p: Partial<AppState>) => void;
 
@@ -39,7 +40,7 @@ export function FinancePanel({ s, patch, advanced, invest }: { s: AppState; patc
   const inv = s.invest;
   const setInv = (p: Partial<AppState['invest']>) => patch({ invest: { ...inv, ...p } });
   const perM2 = inv.livingArea > 0 ? s.price / inv.livingArea : 0;
-  const extraOwn = fin.ownFunds - s.equity;
+  const extraOwn = fin.ownFundsNeeded - s.equity;
   return (
     <Card title={invest ? 'Immobilie und Kauf' : 'Finanzierung'}>
       <div className="flex flex-col gap-4">
@@ -82,6 +83,13 @@ export function FinancePanel({ s, patch, advanced, invest }: { s: AppState; patc
         )}
 
         <SliderField id="renovierung" label="Geplante Renovierung" value={inv.renovation} min={0} max={200000} step={500} unit="€" onChange={(v) => setInv({ renovation: v })} />
+        {advanced && (
+          <>
+            <SliderField id="einrichtung" label="Einrichtung und Möbel" value={s.furnishing} min={0} max={100000} step={500} unit="€" onChange={(v) => patch({ furnishing: v })} />
+            <SliderField id="reserve-kapital" label="Zusätzliche Rücklage" value={s.liquidityReserve} min={0} max={100000} step={500} unit="€" onChange={(v) => patch({ liquidityReserve: v })}
+              hint="Geld, das du zur Sicherheit zur Seite legst. Zählt zum Kapitalbedarf, wird aber nicht ausgegeben." />
+          </>
+        )}
 
         <div className="rounded-xl bg-bg p-3">
           <Toggle id="nebenkosten-an" checked={s.costsEnabled} onChange={(v) => patch({ costsEnabled: v })}
@@ -115,9 +123,9 @@ export function FinancePanel({ s, patch, advanced, invest }: { s: AppState; patc
               )}
             </div>
           )}
-          {(s.costsEnabled || inv.renovation > 0) && (
+          {(s.costsEnabled || inv.renovation > 0 || s.furnishing > 0) && (
             <div className="mt-3">
-              <Toggle id="nebenkosten-finanziert" checked={s.costsFinanced} onChange={(v) => patch({ costsFinanced: v })} label="Nebenkosten und Renovierung mitfinanzieren" />
+              <Toggle id="nebenkosten-finanziert" checked={s.costsFinanced} onChange={(v) => patch({ costsFinanced: v })} label="Nebenkosten, Renovierung und Einrichtung mitfinanzieren" />
             </div>
           )}
         </div>
@@ -128,9 +136,17 @@ export function FinancePanel({ s, patch, advanced, invest }: { s: AppState; patc
             <span className="num font-display text-xl font-bold">{euro(fin.loan)}</span>
           </div>
           <div className="mt-1">
-            <Row label="Gesamtinvestition" value={euro(fin.totalInvestment)} sub="Kaufpreis + Nebenkosten + Renovierung" />
-            <Row label="Eigenmittel gesamt" value={euro(fin.ownFunds)} tone={fin.ownFunds < 0 ? 'bad' : undefined}
-              sub={extraOwn > 0.5 ? `Eigenkapital + ${euro(extraOwn)} für Nebenkosten und Renovierung` : undefined} />
+            <Row label="Gesamtinvestition" value={euro(fin.totalInvestment)} sub="Kaufpreis + Nebenkosten + Renovierung + Einrichtung" />
+            {s.liquidityReserve > 0 && <Row label="Gesamter Kapitalbedarf" value={euro(fin.capitalNeed)} sub="inklusive Rücklage" />}
+            <Row label="Eigenmittel gesamt" value={euro(fin.ownFundsNeeded)} tone={fin.ownFundsNeeded < 0 ? 'bad' : undefined}
+              sub={extraOwn > 0.5 ? `Eigenkapital + ${euro(extraOwn)} für Nebenkosten und Weiteres` : undefined} />
+            {advanced && (
+              <>
+                <Row label={<>Beleihungsquote<InfoTip term="Beleihungsquote" /></>} value={percent(fin.ltv, 1)} tone={fin.ltv > s.rules.maxLtv ? 'bad' : undefined}
+                  sub={`Orientierungswert der Aufsicht: höchstens ${s.rules.maxLtv} %`} />
+                <Row label="Eigenkapitalquote" value={percent(fin.equityRatio, 1)} sub="Eigenmittel am gesamten Kapitalbedarf" />
+              </>
+            )}
           </div>
           {advanced && (
             <>
@@ -149,8 +165,9 @@ export function FinancePanel({ s, patch, advanced, invest }: { s: AppState; patc
           {fin.ownFunds < 0 && <p role="alert" className="mt-2 text-[13px] text-bad">Der Kredit ist höher als die Gesamtinvestition.</p>}
         </div>
 
-        <SliderField id="laufzeit" label="Kreditlaufzeit" value={s.termYears} min={5} max={40} step={1} unit="Jahre"
-          onChange={(v) => patch({ termYears: v, fixYears: Math.min(s.fixYears, v), balanceYear: Math.min(s.balanceYear, v) })} />
+        <SliderField id="laufzeit" label={advanced && s.termMode !== 'laufzeit' && s.loanType === 'annuitaet' ? 'Vertragslaufzeit (Rahmen)' : 'Kreditlaufzeit'} value={s.termYears} min={5} max={40} step={1} unit="Jahre"
+          onChange={(v) => patch({ termYears: v, fixYears: Math.min(s.fixYears, v), balanceYear: Math.min(s.balanceYear, v) })}
+          hint={advanced && s.termMode !== 'laufzeit' && s.loanType === 'annuitaet' ? 'Die tatsächliche Laufzeit ergibt sich aus der Rate (siehe Kreditart und Details).' : undefined} />
       </div>
     </Card>
   );
@@ -251,6 +268,16 @@ export function LoanModelPanel({ s, patch, advanced }: { s: AppState; patch: Pat
                 )}
 
                 {advanced && (
+                  <div className="flex flex-col gap-3">
+                    <Toggle id="cap-an" checked={s.rateCapOn} onChange={(v) => patch({ rateCapOn: v })} label={<>Zinsobergrenze (Cap)<InfoTip term="Zinsobergrenze" /></>} />
+                    {s.rateCapOn && <SliderField id="cap" label="Höchstens" value={s.rateCap} min={0} max={12} step={0.1} decimals={2} unit="%" onChange={(v) => patch({ rateCap: v })} />}
+                    <Toggle id="floor-an" checked={s.rateFloorOn} onChange={(v) => patch({ rateFloorOn: v })} label="Zinsuntergrenze (Floor)" />
+                    {s.rateFloorOn && <SliderField id="floor" label="Mindestens" value={s.rateFloor} min={0} max={12} step={0.1} decimals={2} unit="%" onChange={(v) => patch({ rateFloor: v })} />}
+                    {s.rateCapOn && s.rateFloorOn && s.rateFloor > s.rateCap && <p role="alert" className="text-[13px] text-bad">Die Untergrenze liegt über der Obergrenze.</p>}
+                  </div>
+                )}
+
+                {advanced && (
                   <div>
                     <p className="text-sm font-semibold">Spätere Zinsänderungen</p>
                     <p className="text-[13px] text-muted">
@@ -287,6 +314,97 @@ export function LoanModelPanel({ s, patch, advanced }: { s: AppState; patch: Pat
             )}
           </>
         )}
+      </div>
+    </Card>
+  );
+}
+
+// ---------- Kreditart und Vertragsdetails (erweiterte Ansicht) ----------
+export function LoanDetailsPanel({ s, patch, a }: { s: AppState; patch: Patch; a: Analysis }) {
+  const annuityType = s.loanType === 'annuitaet';
+  const r = a.loan;
+  const typeLabel = { annuitaet: 'Annuität', raten: 'Ratentilgung', endfaellig: 'Endfällig' }[s.loanType];
+  return (
+    <Card title="Kreditart und Details" collapsible defaultOpen={false} summary={<Badge>{typeLabel}</Badge>}>
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className="mb-1.5 text-sm font-medium">Kreditart<InfoTip term={s.loanType === 'raten' ? 'Ratentilgung' : s.loanType === 'endfaellig' ? 'Endfällig' : 'Annuität'} /></p>
+          <Segmented label="Kreditart" size="sm" value={s.loanType} onChange={(v) => patch({ loanType: v })}
+            options={[{ value: 'annuitaet', label: 'Annuität (gleiche Rate)' }, { value: 'raten', label: 'Ratentilgung' }, { value: 'endfaellig', label: 'Endfällig' }]} />
+        </div>
+
+        {annuityType && (
+          <div>
+            <p className="mb-1.5 text-sm font-medium">Was gibst du vor?</p>
+            <Segmented label="Vorgabe" size="sm" value={s.termMode} onChange={(v) => patch({ termMode: v })}
+              options={[{ value: 'laufzeit', label: 'Laufzeit' }, { value: 'tilgung', label: 'Anfangstilgung' }, { value: 'rate', label: 'Wunschrate' }]} />
+            {s.termMode === 'tilgung' && (
+              <div className="mt-3">
+                <SliderField id="anfangstilgung" label={<>Anfangstilgung pro Jahr<InfoTip term="Anfangstilgung" /></>} value={s.initialRepayment} min={0.5} max={10} step={0.1} decimals={2} unit="%"
+                  onChange={(v) => patch({ initialRepayment: v })} hint={`Rate ${euro(r.firstPayment)}, schuldenfrei nach ${years(r.months)}.`} />
+              </div>
+            )}
+            {s.termMode === 'rate' && (
+              <div className="mt-3">
+                <SliderField id="wunschrate" label="Wunschrate je Zahlung" value={s.desiredPayment} min={50} max={10000} step={10} unit="€" onChange={(v) => patch({ desiredPayment: v })}
+                  hint={r.neverRepaid ? undefined : `Schuldenfrei nach ${years(r.months)}.`} />
+              </div>
+            )}
+            {s.termMode !== 'laufzeit' && r.neverRepaid && (
+              <p role="alert" className="mt-2 text-[13px] text-bad">Diese Rate deckt die Zinsen nicht. Der Kredit würde nie zurückgezahlt. Erhöhe die Rate.</p>
+            )}
+          </div>
+        )}
+
+        <SliderField id="tilgungsfrei" label={<>Tilgungsfreie Zeit am Anfang<InfoTip term="Tilgungsfreie Zeit" /></>} value={s.graceMonths} min={0} max={60} step={1} unit="Monate"
+          onChange={(v) => patch({ graceMonths: v })} hint={s.graceMonths > 0 && r.paymentAfterGrace !== null ? `Zuerst nur Zinsen (${euro(r.firstPayment)}), danach ${euro(r.paymentAfterGrace)}.` : undefined} />
+
+        <Field label="Zahlungsintervall" htmlFor="intervall-zahlung">
+          <Select id="intervall-zahlung" value={s.interval} onChange={(v) => patch({ interval: v })}
+            options={[{ value: 1, label: 'Monatlich' }, { value: 3, label: 'Vierteljährlich' }, { value: 6, label: 'Halbjährlich' }, { value: 12, label: 'Jährlich' }]} />
+        </Field>
+        <Field label="Kreditbeginn (Auszahlung)" htmlFor="kreditbeginn">
+          <DateBox id="kreditbeginn" value={s.loanStart} min="2000-01-01" max="2100-12-31" onChange={(v) => v && patch({ loanStart: v })} />
+        </Field>
+        <Field label="Erste Fälligkeit" htmlFor="erste-faelligkeit" hint={s.firstDue ? undefined : `Automatisch einen Monat nach Kreditbeginn: ${dateDe(r.rows[0]?.date ?? '')}`}>
+          <span className="flex items-center gap-1.5">
+            <DateBox id="erste-faelligkeit" value={s.firstDue} min={s.loanStart} max="2100-12-31" onChange={(v) => patch({ firstDue: v })} />
+            {s.firstDue && <button type="button" aria-label="Erste Fälligkeit zurücksetzen" onClick={() => patch({ firstDue: '' })} className="rounded-lg px-2 py-1 text-muted hover:text-bad">✕</button>}
+          </span>
+        </Field>
+        {s.firstDue && s.firstDue <= s.loanStart && <p role="alert" className="-mt-2 text-[13px] text-bad">Die erste Fälligkeit muss nach dem Kreditbeginn liegen. Es wird automatisch gerechnet.</p>}
+        <Field label={<>Zinsmethode<InfoTip term="Zinsmethode" /></>} htmlFor="zinsmethode">
+          <Select id="zinsmethode" value={s.dayCount} onChange={(v) => patch({ dayCount: v })}
+            options={[{ value: '30/360', label: '30/360 (Standard)' }, { value: 'act/360', label: 'taggenau / 360' }, { value: 'act/365', label: 'taggenau / 365' }]} />
+        </Field>
+      </div>
+    </Card>
+  );
+}
+
+// ---------- Kreditgebühren und Effektivzins ----------
+export function FeesPanel({ s, patch, a }: { s: AppState; patch: Patch; a: Analysis }) {
+  const f = s.fees;
+  const set = (p: Partial<AppState['fees']>) => patch({ fees: { ...f, ...p } });
+  const r = a.loan;
+  return (
+    <Card title="Gebühren und Effektivzins" collapsible defaultOpen={false} summary={<span className="num">{r.apr === null ? '–' : percent(r.apr, 2)}</span>}>
+      <div className="flex flex-col gap-4">
+        <SliderField id="kontofuehrung" label="Kontoführung pro Monat" value={f.accountMonthly} min={0} max={50} step={0.5} decimals={2} unit="€" onChange={(v) => set({ accountMonthly: v })} />
+        <SliderField id="versicherung-kredit" label="Pflichtversicherung pro Monat" value={f.insuranceMonthly} min={0} max={200} step={1} decimals={2} unit="€" onChange={(v) => set({ insuranceMonthly: v })}
+          hint="Nur Versicherungen, die die Bank für den Kredit verlangt." />
+        <SliderField id="sonstige-kreditkosten" label="Weitere einmalige Kreditkosten" value={f.otherOneTime} min={0} max={20000} step={50} unit="€" onChange={(v) => set({ otherOneTime: v })} />
+        <div className="rounded-xl border border-line p-3">
+          <Row label="Einmalige Finanzierungskosten" value={euro(a.loanInput.oneTimeCosts ?? 0)}
+            sub={a.fin.financingCosts > 0 ? `davon ${euro(a.fin.financingCosts)} aus den Kaufnebenkosten (Pfandrecht, Bankgebühr, Bewertung)` : 'Bearbeitungs- und Pfandrechtsgebühr stehen bei den Kaufnebenkosten'} />
+          <Row label="Auszahlung nach Abzug dieser Kosten" value={euro(a.fin.loan - (a.loanInput.oneTimeCosts ?? 0))} tone="muted" />
+          <Row label="Laufende Gebühren gesamt" value={euro(r.totalFees - (a.loanInput.oneTimeCosts ?? 0) - r.prepayFees)} tone="muted" />
+          <Row label="Nominalzins" value={percent(s.fixRate, 3)} />
+          <Row label={<>Effektiver Jahreszins<InfoTip term="Effektivzins" /></>} value={r.apr === null ? 'nicht berechenbar' : percent(r.apr, 2)} strong />
+        </div>
+        <p className="text-[13px] text-muted">
+          Der Effektivzins wird aus allen Zahlungen nach der EU-Formel berechnet, ohne Sondertilgungen.{a.variable ? ' Bei variablem Zins gilt er nur für deine Zinsannahmen.' : ''} Grundbuchgebühr für den Eigentumserwerb, Notar und Makler zählen nicht dazu.
+        </p>
       </div>
     </Card>
   );

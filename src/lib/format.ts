@@ -26,3 +26,24 @@ export function parseNumber(text: string): number {
   const normalized = t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : /^\d{1,3}(\.\d{3})+$/.test(t) ? t.replace(/\./g, '') : t;
   return Number(normalized);
 }
+
+/** 'YYYY-MM-DD' → 'TT.MM.JJJJ'. */
+export function dateDe(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : '–';
+}
+const MONTHS = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+/** 'YYYY-MM-DD' → 'Oktober 2026'. */
+export function monthYear(iso: string): string {
+  const m = /^(\d{4})-(\d{2})/.exec(iso);
+  return m ? `${MONTHS[Number(m[2]) - 1]} ${m[1]}` : '–';
+}
+/** Laufzeit als „25 Jahre 3 Monate“. */
+export function years(months: number): string {
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  const ys = y === 1 ? '1 Jahr' : `${y} Jahre`;
+  const ms = m === 1 ? '1 Monat' : `${m} Monate`;
+  return y === 0 ? ms : m === 0 ? ys : `${ys} ${ms}`;
+}
+export const signedEuro = (v: number) => `${v > 0 ? '+' : ''}${euro(v)}`;
