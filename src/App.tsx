@@ -4,6 +4,7 @@ import { Comparison } from './components/Comparison';
 import { ExtraPanel } from './components/ExtraPanel';
 import { CostsPanel, LoanSummary, RentPanel, RiskPanel, TaxPanel } from './components/InvestSettings';
 import { AdvancedInvest, SimpleInvest } from './components/InvestViews';
+import { Landing } from './components/Landing';
 import { ExtraSimulator, MilestonesPanel, RateSimulator } from './components/LoanTools';
 import { ScheduleTable } from './components/ScheduleTable';
 import { Scenarios } from './components/Scenarios';
@@ -112,7 +113,7 @@ export default function App() {
   const a = useMemo(() => analyze(s), [s]);
   const advanced = s.viewMode === 'erweitert';
   // In der vereinfachten Ansicht gibt es nur drei Bereiche.
-  const section: Section = advanced || ['kredit', 'leistbarkeit', 'invest'].includes(s.section) ? s.section : 'kredit';
+  const section: Section = advanced || ['start', 'kredit', 'leistbarkeit', 'invest'].includes(s.section) ? s.section : 'kredit';
   const invest = section === 'invest';
   const result = a.loan;
   const effect = useMemo(() => (hasExtras(a.loanInput.extra, a.loanInput.extraRules) ? extraEffect(a.loanInput, result) : null), [a.loanInput, result]);
@@ -158,8 +159,8 @@ export default function App() {
   );
 
   const nav: { value: Section; label: string }[] = advanced
-    ? [{ value: 'kredit', label: 'Kreditrechner' }, { value: 'vergleich', label: 'Vergleich' }, { value: 'leistbarkeit', label: 'Leistbarkeit' }, { value: 'umschuldung', label: 'Umschuldung' }, { value: 'tilgen', label: 'Tilgen oder investieren' }, { value: 'invest', label: 'Immobilie vermieten' }]
-    : [{ value: 'kredit', label: 'Kreditrechner' }, { value: 'leistbarkeit', label: 'Kann ich mir das leisten?' }, { value: 'invest', label: 'Immobilie vermieten' }];
+    ? [{ value: 'start', label: 'Start' }, { value: 'kredit', label: 'Kreditrechner' }, { value: 'vergleich', label: 'Vergleich' }, { value: 'leistbarkeit', label: 'Leistbarkeit' }, { value: 'umschuldung', label: 'Umschuldung' }, { value: 'tilgen', label: 'Tilgen oder investieren' }, { value: 'invest', label: 'Immobilie vermieten' }]
+    : [{ value: 'start', label: 'Start' }, { value: 'kredit', label: 'Kreditrechner' }, { value: 'leistbarkeit', label: 'Kann ich mir das leisten?' }, { value: 'invest', label: 'Immobilie vermieten' }];
 
   const pausedBanner = paused.length > 0 && (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-line bg-accentsoft px-4 py-3 text-sm">
@@ -186,18 +187,18 @@ export default function App() {
   return (
     <div className="mx-auto max-w-[1360px] px-4 pb-36 pt-4 sm:px-6 lg:pb-20">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <img src={logo} alt="" width={48} height={48} className="h-12 w-12 shrink-0" />
-          <div className="min-w-0">
-            <h1 className="font-display text-2xl font-bold leading-none tracking-tight">
-              Kredit <span className="text-accent">Pilot</span>
-            </h1>
-            <p className="mt-1 text-sm text-muted">Kredit, Finanzierung und Vermietung einfach verstehen</p>
-          </div>
-        </div>
+        <h1 className="min-w-0">
+          <button type="button" onClick={() => patch({ section: 'start' })} title="Zur Startseite" className="flex min-w-0 items-center gap-3 rounded-xl text-left">
+            <img src={logo} alt="" width={48} height={48} className="h-12 w-12 shrink-0" />
+            <span className="min-w-0">
+              <span className="block font-display text-2xl font-bold leading-none tracking-tight">Kredit <span className="text-accent">Pilot</span></span>
+              <span className="mt-1 block text-sm font-normal text-muted">Kredit, Finanzierung und Vermietung einfach verstehen</span>
+            </span>
+          </button>
+        </h1>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => patch({ ...DEFAULT_STATE, viewMode: 'erweitert', section: 'kredit', manualLoan: true, manualLoanAmount: 119000 })}>Beispiel: 119.000 € Kredit</Button>
-          <Button onClick={reset}>Zurücksetzen</Button>
+          {section !== 'start' && <Button onClick={() => patch({ ...DEFAULT_STATE, viewMode: 'erweitert', section: 'kredit', manualLoan: true, manualLoanAmount: 119000 })}>Beispiel: 119.000 € Kredit</Button>}
+          {section !== 'start' && <Button onClick={reset}>Zurücksetzen</Button>}
           <button type="button" onClick={toggleTheme} aria-pressed={dark} className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium hover:border-accent hover:text-accent">
             {dark ? 'Heller Modus' : 'Dunkler Modus'}
           </button>
@@ -208,6 +209,7 @@ export default function App() {
         <Segmented label="Rechner" value={section} onChange={(v) => patch({ section: v })} options={nav} />
       </nav>
 
+      {section === 'start' && <div className="flex flex-col gap-4"><Landing onOpen={(sec, adv) => patch(adv ? { section: sec, viewMode: 'erweitert' } : { section: sec })} />{credit}</div>}
       {section === 'vergleich' && <div className="flex flex-col gap-4"><Comparison s={s} patch={patch} a={a} projects={projects} />{footer}{credit}</div>}
       {section === 'leistbarkeit' && <div className="flex flex-col gap-4">{pausedBanner}<AffordSection s={s} patch={patch} a={a} advanced={advanced} />{footer}{credit}</div>}
       {section === 'umschuldung' && <div className="flex flex-col gap-4"><RefiSection s={s} patch={patch} a={a} />{footer}{credit}</div>}
@@ -301,8 +303,8 @@ export default function App() {
         </TwoCol>
       )}
 
-      {/* Mobile Leiste mit der wichtigsten Zahl */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface px-4 pt-2 lg:hidden" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}>
+      {/* Mobile Leiste mit der wichtigsten Zahl (nicht auf der Startseite) */}
+      <div hidden={section === 'start'} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface px-4 pt-2 lg:hidden" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[12px] text-muted">{k === 1 ? 'Monatsrate' : 'Rate'}</div>
@@ -318,7 +320,7 @@ export default function App() {
       </div>
 
       {/* Umschalter links unten: vereinfachte oder erweiterte Ansicht */}
-      <div className="fixed left-3 z-30 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:bottom-4 lg:left-4">
+      <div className={`fixed left-3 z-30 lg:bottom-4 lg:left-4 ${section === 'start' ? 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]' : 'bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]'}`}>
         <div role="radiogroup" aria-label="Ansicht" className="inline-flex gap-1 rounded-full border border-line bg-surface p-1 shadow-lg">
           {([['einfach', 'Vereinfachte Ansicht'], ['erweitert', 'Erweiterte Ansicht']] as const).map(([value, label]) => (
             <button key={value} type="button" role="radio" aria-checked={s.viewMode === value} onClick={() => patch({ viewMode: value })}

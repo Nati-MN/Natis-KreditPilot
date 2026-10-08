@@ -6,7 +6,7 @@ import { DEFAULT_POI, type PoiState } from './payinvest';
 import { DEFAULT_REFI, type RefiState } from './refinance';
 import { DEFAULT_PURCHASE_ITEMS, purchaseCostsDetail, type PurchaseItem } from './purchase';
 
-export type Section = 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest';
+export type Section = 'start' | 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest';
 export type TermMode = 'laufzeit' | 'tilgung' | 'rate';
 
 export interface LoanFees {
@@ -159,7 +159,7 @@ export const DEFAULT_INVEST: InvestState = {
 
 export const DEFAULT_STATE: AppState = {
   viewMode: 'einfach',
-  section: 'kredit',
+  section: 'start',
   price: 119000,
   equity: 30000,
   costsEnabled: true,
@@ -264,7 +264,7 @@ export function normalize(saved: unknown): AppState {
   const oneOf = <T,>(value: T, allowed: readonly T[], def: T): T => (allowed.includes(value) ? value : def);
   const D = DEFAULT_STATE;
   base.viewMode = oneOf(base.viewMode, ['einfach', 'erweitert'], D.viewMode);
-  base.section = oneOf(base.section, ['kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest'], D.section);
+  base.section = oneOf(base.section, ['start', 'kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest'], D.section);
   base.costsMode = oneOf(base.costsMode, ['detail', 'percent', 'euro'], D.costsMode);
   base.mode = oneOf(base.mode, ['fix', 'variabel'], D.mode);
   base.loanType = oneOf(base.loanType, ['annuitaet', 'raten', 'endfaellig'], D.loanType);
@@ -461,7 +461,8 @@ function write(key: string, value: unknown): boolean {
   }
 }
 
-export const loadState = (): AppState => normalize(read<unknown>(KEY_STATE));
+/** Beim Öffnen der Seite beginnt man immer auf der Startseite; die Eingaben bleiben erhalten. */
+export const loadState = (): AppState => ({ ...normalize(read<unknown>(KEY_STATE)), section: 'start' });
 export const saveState = (s: AppState) => write(KEY_STATE, s);
 
 export interface SavedScenario {
