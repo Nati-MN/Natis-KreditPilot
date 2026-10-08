@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { analyze } from './analysis';
-import { buildReportPdf, buildWorkbook, csvFromTable, formatPlan, planTable, xlsxFromTable, type Report } from './export';
+import { buildWorkbook, csvFromTable, formatPlan, planTable, xlsxFromTable, type Report } from './export';
+import { buildReportPdf } from './pdf';
 import { round2 } from './loan';
 import { DEFAULT_STATE, type AppState } from './state';
 import { excelDate } from './xlsx';

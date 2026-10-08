@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ANALYTICS_AVAILABLE, clearLocalData, getConsent, setConsent, STORAGE_KEYS, type Consent } from '../lib/consent';
 import { SITE } from '../lib/site';
 import type { Section } from '../lib/state';
+import { Link } from './Link';
 import { Button } from './ui';
 
 export type LegalPage = 'datenschutz' | 'nutzung' | 'cookies' | 'erstattung';
@@ -42,7 +43,7 @@ export function ConsentChoice({ onChange }: { onChange?: (c: Consent) => void })
 }
 
 /** Einwilligungs-Hinweis: erscheint, solange keine Entscheidung getroffen wurde. Beide Knöpfe sind gleichwertig. */
-export function ConsentBanner({ onMore }: { onMore: () => void }) {
+export function ConsentBanner() {
   const [open, setOpen] = useState(() => ANALYTICS_AVAILABLE && getConsent() === null);
   if (!open) return null;
   return (
@@ -50,7 +51,7 @@ export function ConsentBanner({ onMore }: { onMore: () => void }) {
       <p className="text-sm font-semibold">Anonyme Besucherzählung erlauben?</p>
       <p className="mt-1 text-[13px] leading-relaxed text-muted">
         Diese Seite setzt keine Cookies. Wenn du zustimmst, wird gezählt, wie oft die Seite aufgerufen wird, ohne Cookies und ohne dich wiederzuerkennen. Deine Eingaben in den Rechnern werden nie übertragen.{' '}
-        <button type="button" onClick={onMore} className="font-medium text-accent underline underline-offset-2">Mehr dazu</button>
+        <Link to="cookies" className="font-medium text-accent underline underline-offset-2">Mehr dazu</Link>
       </p>
       <div className="mt-3"><ConsentChoice onChange={() => setOpen(false)} /></div>
     </div>
@@ -119,6 +120,8 @@ function Cookies({ onCleared }: { onCleared: () => void }) {
         <Button onClick={() => { setMsg(clearLocalData() ? 'Alle gespeicherten Daten wurden gelöscht.' : 'Der Speicher konnte nicht gelöscht werden.'); onCleared(); }}>Alle gespeicherten Daten löschen</Button>
         {msg && <span role="status" className="text-[13px] text-muted">{msg}</span>}
       </div>
+      <H>Offline-Speicher</H>
+      <P>Damit {SITE.name} auch ohne Internet und als installierte App funktioniert, legt dein Browser die Dateien der Webseite (Programmcode, Schriften, Symbole) in einem Zwischenspeicher ab. Darin stehen keine Eingaben und keine Angaben über dich. Du entfernst ihn in den Einstellungen deines Browsers unter „Websitedaten löschen“.</P>
       <H>Besucherzählung</H>
       <P>Nur wenn du zustimmst, wird eine anonyme Besucherzählung geladen (Vercel Web Analytics). Sie arbeitet laut Anbieter ohne Cookies. Du kannst deine Entscheidung hier jederzeit ändern. Nach einer Ablehnung wird das Skript ab dem nächsten Laden der Seite nicht mehr geladen.</P>
       {ANALYTICS_AVAILABLE ? <div className="mt-3"><ConsentChoice /></div> : <P>In dieser Ansicht ist die Besucherzählung abgeschaltet.</P>}
@@ -154,12 +157,12 @@ export function Legal({ page, onBack, onCleared }: { page: LegalPage; onBack: ()
   );
 }
 
-/** Fußzeilen-Links zu den Rechtsseiten. */
-export function LegalLinks({ onOpen }: { onOpen: (p: LegalPage | 'quellen') => void }) {
+/** Fußzeilen-Links zu Ratgeber, Quellen und den Rechtsseiten. */
+export function LegalLinks() {
   return (
-    <nav aria-label="Rechtliches" className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px]">
-      {[{ value: 'quellen' as const, label: 'Quellen und Annahmen' }, ...LEGAL_PAGES].map((p) => (
-        <a key={p.value} href={`#${p.value}`} onClick={(e) => { e.preventDefault(); onOpen(p.value); }} className="font-medium text-muted underline underline-offset-2 hover:text-accent">{p.label}</a>
+    <nav aria-label="Weitere Seiten" className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px]">
+      {[{ value: 'ratgeber' as const, label: 'Ratgeber' }, { value: 'quellen' as const, label: 'Quellen und Annahmen' }, ...LEGAL_PAGES].map((p) => (
+        <Link key={p.value} to={p.value} className="font-medium text-muted underline underline-offset-2 hover:text-accent">{p.label}</Link>
       ))}
     </nav>
   );

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { breakEven, compareMetrics, type Analysis } from '../lib/analysis';
-import { csvFromTable, MIME, pdfFromTable, saveFile, toBlob, xlsxFromTable } from '../lib/export';
+import { csvFromTable, MIME, saveFile, toBlob, xlsxFromTable } from '../lib/export';
 import { euro, number2, percent } from '../lib/format';
 import { calculateLoan } from '../lib/loan';
 import { project, typicalMonth } from '../lib/invest';
@@ -240,7 +240,7 @@ function ProjectionTable({ a }: { a: Analysis }) {
       const note = 'Modellrechnung mit eigenen Annahmen zu Miete, Leerstand, Zinsen, Wert und Steuern. Keine Prognose und keine Beratung.';
       const blob = kind === 'csv' ? toBlob(csvFromTable(head, body), MIME.csv)
         : kind === 'xlsx' ? toBlob(xlsxFromTable('Prognose', head, body), MIME.xlsx)
-        : toBlob(pdfFromTable('Immobilien-Investment', summary, head, body, note), MIME.pdf);
+        : toBlob((await import('../lib/pdf')).pdfFromTable('Immobilien-Investment', summary, head, body, note), MIME.pdf);
       setMessage(await saveFile(`kredit-pilot-immobilie-prognose-${view}.${kind}`, blob));
     } catch {
       setMessage('Der Export konnte nicht erstellt werden.');

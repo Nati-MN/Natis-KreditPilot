@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { analyze, type Analysis } from '../lib/analysis';
-import { csvFromTable, MIME, pdfFromTable, saveFile, toBlob, xlsxFromTable } from '../lib/export';
+import { csvFromTable, MIME, saveFile, toBlob, xlsxFromTable } from '../lib/export';
 import { euro, monthYear, number2, percent, signedEuro, years } from '../lib/format';
 import { balanceAfterYears } from '../lib/loan';
 import { compareOffers, type Offer } from '../lib/offers';
@@ -16,7 +16,7 @@ function ExportButtons({ name, title, head, body, note }: { name: string; title:
   const run = async (kind: 'pdf' | 'xlsx' | 'csv') => {
     setMessage(null);
     try {
-      const blob = kind === 'pdf' ? toBlob(pdfFromTable(title, [], head, body, note), MIME.pdf) : kind === 'xlsx' ? toBlob(xlsxFromTable(title, head, body), MIME.xlsx) : toBlob(csvFromTable(head, body), MIME.csv);
+      const blob = kind === 'pdf' ? toBlob((await import('../lib/pdf')).pdfFromTable(title, [], head, body, note), MIME.pdf) : kind === 'xlsx' ? toBlob(xlsxFromTable(title, head, body), MIME.xlsx) : toBlob(csvFromTable(head, body), MIME.csv);
       setMessage(await saveFile(`${name}.${kind}`, blob));
     } catch {
       setMessage('Der Export konnte nicht erstellt werden.');

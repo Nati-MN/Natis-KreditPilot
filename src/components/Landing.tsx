@@ -1,5 +1,7 @@
 import type { Section } from '../lib/state';
 import logo from '../logo.png';
+import { Install } from './Install';
+import { Link } from './Link';
 
 export type StartChoice = 'kredit' | 'kauf' | 'vermieten';
 type Target = Exclude<Section, 'start'>;
@@ -51,10 +53,15 @@ export function Landing({ onChoose, onOpen }: { onChoose: (c: StartChoice) => vo
         {MORE.map((t, i) => (
           <span key={t.section}>
             {i > 0 && ' · '}
-            <button type="button" onClick={() => onOpen(t.section, t.advanced)} className="font-medium text-accent underline-offset-2 hover:underline">{t.title}</button>
+            <Link to={t.section} onGo={() => onOpen(t.section, t.advanced)} className="font-medium text-accent underline-offset-2 hover:underline">{t.title}</Link>
           </span>
         ))}
       </p>
+      <p className="text-sm leading-relaxed text-muted">
+        Erst verstehen, dann rechnen:{' '}
+        <Link to="ratgeber" className="font-medium text-accent underline-offset-2 hover:underline">Ratgeber mit kurzen Erklärungen</Link>
+      </p>
+      <Install />
     </div>
   );
 }

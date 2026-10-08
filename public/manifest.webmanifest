@@ -1,0 +1,22 @@
+{
+  "name": "Kredit Pilot",
+  "short_name": "Kredit Pilot",
+  "description": "Kreditrechner für Österreich: Monatsrate, Zinsen, Tilgungsplan, Leistbarkeit und Vermietung.",
+  "lang": "de-AT",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c121a",
+  "theme_color": "#0f2453",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Kreditrechner", "url": "/kreditrechner" },
+    { "name": "Kann ich mir das leisten?", "url": "/leistbarkeit" },
+    { "name": "Immobilie vermieten", "url": "/immobilie-vermieten" }
+  ]
+}

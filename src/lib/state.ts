@@ -1,4 +1,5 @@
 import { DEFAULT_COSTS, DEFAULT_RENT, initialCosts, type CostItem, type RentAdjustment, type RentState, type TaxState } from './invest';
+import { readRoute } from './routes';
 import { DEFAULT_AFFORD, DEFAULT_RULES, type AffordState, type LendingRules } from './afford';
 import { hasExtras, NO_EXTRAS, round2 as r2, type DayCount, type ExtraPayments, type ExtraRule, type Interval, type LoanInput, type LoanMode, type LoanType, type RateChange } from './loan';
 import { EXAMPLE_OFFERS, type Offer } from './offers';
@@ -6,8 +7,8 @@ import { DEFAULT_POI, type PoiState } from './payinvest';
 import { DEFAULT_REFI, type RefiState } from './refinance';
 import { DEFAULT_PURCHASE_ITEMS, purchaseCostsDetail, type PurchaseItem } from './purchase';
 
-export type Section = 'start' | 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest' | 'immobilien' | 'quellen' | 'datenschutz' | 'nutzung' | 'cookies' | 'erstattung';
-export const SECTIONS: Section[] = ['start', 'kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest', 'immobilien', 'quellen', 'datenschutz', 'nutzung', 'cookies', 'erstattung'];
+export type Section = 'start' | 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest' | 'immobilien' | 'ratgeber' | 'quellen' | 'datenschutz' | 'nutzung' | 'cookies' | 'erstattung';
+export const SECTIONS: Section[] = ['start', 'kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest', 'immobilien', 'ratgeber', 'quellen', 'datenschutz', 'nutzung', 'cookies', 'erstattung'];
 export type TermMode = 'laufzeit' | 'tilgung' | 'rate';
 
 export interface LoanFees {
@@ -472,11 +473,15 @@ function write(key: string, value: unknown): boolean {
   }
 }
 
-/** Beim Öffnen der Seite beginnt man immer auf der Startseite; die Eingaben bleiben erhalten. */
+/** Bereiche, die es nur in der erweiterten Ansicht gibt. */
+export const ADVANCED_ONLY: Section[] = ['vergleich', 'umschuldung', 'tilgen'];
+
+/** Die Adresse bestimmt den Bereich (z. B. /kreditrechner); die Eingaben bleiben erhalten. */
 export function loadState(): AppState {
-  // Ein Anker in der Adresse (z. B. #datenschutz) öffnet direkt diesen Bereich.
-  const hash = typeof location !== 'undefined' ? (location.hash.slice(1) as Section) : 'start';
-  return { ...normalize(read<unknown>(KEY_STATE)), section: SECTIONS.includes(hash) ? hash : 'start' };
+  const section = readRoute().section;
+  const stored = normalize(read<unknown>(KEY_STATE));
+  // Ein direkter Link auf einen Bereich der erweiterten Ansicht öffnet diese Ansicht.
+  return { ...stored, section, viewMode: ADVANCED_ONLY.includes(section) ? 'erweitert' : stored.viewMode };
 }
 export const saveState = (s: AppState) => write(KEY_STATE, s);
 

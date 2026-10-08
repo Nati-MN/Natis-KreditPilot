@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BalanceChart, CostChart, PaymentChart, SplitChart } from './components/Charts';
-import { Comparison } from './components/Comparison';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { ExtraPanel } from './components/ExtraPanel';
 import { CostsPanel, LoanSummary, RentPanel, RiskPanel, TaxPanel } from './components/InvestSettings';
-import { AdvancedInvest, SimpleInvest } from './components/InvestViews';
-import { Landing } from './components/Landing';
+import { Landing, type StartChoice } from './components/Landing';
+import { Link } from './components/Link';
 import { Portfolio } from './components/Portfolio';
+import { Ratgeber } from './components/Ratgeber';
 import { Sources } from './components/Sources';
 import { ConsentBanner, isLegal, Legal, LegalLinks } from './components/Legal';
-import { ExtraSimulator, MilestonesPanel, RateSimulator } from './components/LoanTools';
-import { ScheduleTable } from './components/ScheduleTable';
 import { Scenarios } from './components/Scenarios';
 import { FeesPanel, FinancePanel, LoanDetailsPanel, LoanModelPanel } from './components/Settings';
-import { AffordSection, PoiSection, RefiSection } from './components/Tools';
 import { Badge, Button, InfoTip, NumberBox, radioKeys, ResultCard, Segmented, TwoCol } from './components/ui';
 import { analyze, type Analysis } from './lib/analysis';
 import { getConsent, loadAnalytics } from './lib/consent';
@@ -20,8 +16,39 @@ import type { Report } from './lib/export';
 import { dateDe, euro, monthYear, percent, signedEuro, years } from './lib/format';
 import { balanceAfterYears, extraEffect, hasExtras, type ExtraEffect } from './lib/loan';
 import { rateScenarios } from './lib/offers';
-import { DEFAULT_STATE, loadScenarios, loadState, loadTheme, normalize, pausedSettings, saveState, saveTheme, SECTIONS, type AppState, type SavedScenario, type Section, type ThemeChoice } from './lib/state';
+import { ADVANCED_ONLY, DEFAULT_STATE, loadScenarios, loadState, loadTheme, normalize, pausedSettings, saveState, saveTheme, SECTIONS, type AppState, type SavedScenario, type Section, type ThemeChoice } from './lib/state';
+import type { Article } from './lib/articles';
+import { onNavigate } from './lib/nav';
+import { applyMeta, HASH_ROUTER, readRoute, urlFor } from './lib/routes';
 import logo from './logo.png';
+
+// Diagramme, Tabellen und die großen Rechner werden erst geladen, wenn sie gebraucht werden.
+// So bleibt der erste Aufruf der Startseite klein.
+const charts = () => import('./components/Charts');
+const loanTools = () => import('./components/LoanTools');
+const tools = () => import('./components/Tools');
+const investViews = () => import('./components/InvestViews');
+const comparison = () => import('./components/Comparison');
+const scheduleTable = () => import('./components/ScheduleTable');
+const BalanceChart = lazy(() => charts().then((m) => ({ default: m.BalanceChart })));
+const CostChart = lazy(() => charts().then((m) => ({ default: m.CostChart })));
+const PaymentChart = lazy(() => charts().then((m) => ({ default: m.PaymentChart })));
+const SplitChart = lazy(() => charts().then((m) => ({ default: m.SplitChart })));
+const ExtraSimulator = lazy(() => loanTools().then((m) => ({ default: m.ExtraSimulator })));
+const MilestonesPanel = lazy(() => loanTools().then((m) => ({ default: m.MilestonesPanel })));
+const RateSimulator = lazy(() => loanTools().then((m) => ({ default: m.RateSimulator })));
+const AffordSection = lazy(() => tools().then((m) => ({ default: m.AffordSection })));
+const PoiSection = lazy(() => tools().then((m) => ({ default: m.PoiSection })));
+const RefiSection = lazy(() => tools().then((m) => ({ default: m.RefiSection })));
+const AdvancedInvest = lazy(() => investViews().then((m) => ({ default: m.AdvancedInvest })));
+const SimpleInvest = lazy(() => investViews().then((m) => ({ default: m.SimpleInvest })));
+const Comparison = lazy(() => comparison().then((m) => ({ default: m.Comparison })));
+const ScheduleTable = lazy(() => scheduleTable().then((m) => ({ default: m.ScheduleTable })));
+/** Lädt die Rechner im Hintergrund vor, damit der erste Klick nicht warten muss. */
+const preloadCalculators = () => {
+  for (const load of [charts, loanTools, tools, investViews, comparison, scheduleTable]) load().catch(() => undefined);
+};
+const Loading = () => <div role="status" className="rounded-card border border-line bg-surface p-6 text-center text-sm text-muted">Wird geladen …</div>;
 
 type Tab = 'diagramme' | 'plan' | 'sondertilgung' | 'zinsen' | 'meilensteine';
 
@@ -118,37 +145,56 @@ export default function App() {
     if (getConsent() === 'ja') loadAnalytics();
   }, []);
 
-  // Zurück-Taste des Browsers: Jeder Bereich bekommt einen Eintrag im Verlauf (#kredit, #invest, ...).
-  // „Zurück“ führt so zum vorher geöffneten Bereich statt von der Webseite weg.
+  // Jeder Bereich hat eine eigene Adresse (/kreditrechner, /ratgeber/...). Die Zurück-Taste des Browsers
+  // führt so zum vorher geöffneten Bereich statt von der Webseite weg.
+  const [slug, setSlug] = useState<string | null>(() => readRoute().slug);
   useEffect(() => {
-    const fromHash = (): Section => {
-      const h = location.hash.slice(1) as Section;
-      return SECTIONS.includes(h) ? h : 'start';
+    const open = (r: { section: Section; slug: string | null }) => {
+      setSlug(r.slug);
+      setS((prev) => (prev.section === r.section ? prev : { ...prev, section: r.section, viewMode: ADVANCED_ONLY.includes(r.section) ? 'erweitert' : prev.viewMode }));
     };
-    const onPop = () => setS((prev) => (prev.section === fromHash() ? prev : { ...prev, section: fromHash() }));
+    // Alte Adressen mit # und unbekannte Pfade auf die richtige Adresse umschreiben.
+    const first = readRoute();
+    if (!HASH_ROUTER && (location.pathname !== urlFor(first.section, first.slug) || location.hash)) {
+      try {
+        history.replaceState(null, '', urlFor(first.section, first.slug) + location.search);
+      } catch {
+        /* ohne Verlauf weiter */
+      }
+    }
+    const onPop = () => open(readRoute());
+    onNavigate(open);
     window.addEventListener('popstate', onPop);
     window.addEventListener('hashchange', onPop);
+    // Rechner im Hintergrund vorladen, sobald der Browser Zeit hat.
+    const idle = window.requestIdleCallback ? window.requestIdleCallback(preloadCalculators, { timeout: 4000 }) : window.setTimeout(preloadCalculators, 1500);
     return () => {
+      onNavigate(null);
       window.removeEventListener('popstate', onPop);
       window.removeEventListener('hashchange', onPop);
+      if (window.cancelIdleCallback) window.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
     };
   }, []);
+  const activeSlug = s.section === 'ratgeber' ? slug : null;
   useEffect(() => {
-    const current = SECTIONS.includes(location.hash.slice(1) as Section) ? location.hash.slice(1) : 'start';
-    if (current === s.section) return;
-    try {
-      history.pushState(null, '', s.section === 'start' ? location.pathname + location.search : `#${s.section}`);
-    } catch {
-      /* in eingebetteten Ansichten nicht erlaubt: dann ohne Verlauf */
+    const current = readRoute();
+    if (current.section !== s.section || current.slug !== activeSlug) {
+      try {
+        history.pushState(null, '', urlFor(s.section, activeSlug));
+      } catch {
+        /* in eingebetteten Ansichten nicht erlaubt: dann ohne Verlauf */
+      }
+      window.scrollTo(0, 0);
     }
-    window.scrollTo(0, 0);
-  }, [s.section]);
+    applyMeta(s.section, activeSlug);
+  }, [s.section, activeSlug]);
 
   // Eine Analyse für alles: alle Rechner arbeiten mit denselben Kreditdaten.
   const a = useMemo(() => analyze(s), [s]);
   const advanced = s.viewMode === 'erweitert';
   // In der vereinfachten Ansicht gibt es nur drei Bereiche.
-  const section: Section = advanced || ['start', 'kredit', 'leistbarkeit', 'invest', 'immobilien', 'quellen'].includes(s.section) || isLegal(s.section) ? s.section : 'kredit';
+  const section: Section = advanced || ['start', 'kredit', 'leistbarkeit', 'invest', 'immobilien', 'ratgeber', 'quellen'].includes(s.section) || isLegal(s.section) ? s.section : 'kredit';
   const invest = section === 'invest';
   const result = a.loan;
   const effect = useMemo(() => (hasExtras(a.loanInput.extra, a.loanInput.extraRules) ? extraEffect(a.loanInput, result) : null), [a.loanInput, result]);
@@ -162,8 +208,18 @@ export default function App() {
   const restschuld = balanceAfterYears(result, balanceYear, principal);
   const contractMonths = s.termYears * 12;
   const afterFix = variable ? result.paymentAfterFix : null;
+  const setView = (v: AppState['viewMode']) => patch(v === 'einfach' && ADVANCED_ONLY.includes(s.section) ? { viewMode: v, section: 'kredit' } : { viewMode: v });
+  /** Einstieg von der Startseite oder aus einem Ratgebertext. */
+  const choose = (c: StartChoice) => patch(c === 'kredit' ? { section: 'kredit', loanOnly: true, manualLoan: true, manualLoanAmount: s.loanOnly ? s.manualLoanAmount : 20000, termYears: s.loanOnly ? s.termYears : 7 }
+    : c === 'kauf' ? { section: 'kredit', loanOnly: false, manualLoan: false, termYears: s.loanOnly ? 30 : s.termYears } : { section: 'invest' });
+  const openCta = (article: Article) => {
+    const c = article.cta;
+    if (c.tab) setTab(c.tab);
+    if (c.choice) choose(c.choice);
+    else patch({ section: c.section, ...(c.advanced ? { viewMode: 'erweitert' as const } : {}) });
+  };
   const reset = () => setS({ ...DEFAULT_STATE, viewMode: s.viewMode, section: s.section });
-  const plain = section === 'start' || section === 'quellen' || isLegal(section); // Seiten ohne Rechner-Bedienelemente
+  const plain = section === 'start' || section === 'ratgeber' || section === 'quellen' || isLegal(section); // Seiten ohne Rechner-Bedienelemente
   const k = a.s.interval;
   const rateLabel = `${INTERVAL_LABEL[k]} Kreditrate`;
 
@@ -209,12 +265,12 @@ export default function App() {
       <strong className="text-fg">Annahmen dieser Rechnung:</strong> Zinsen je Monat = Restschuld × Nominalzins × Tagesanteil, Beträge auf Cent gerundet, die letzte Rate gleicht Rundungen aus.
       Banken können je nach Vertrag anders rechnen. Variable Zinsen, Mietsteigerung, Leerstand, Renditen und Wertentwicklung sind deine eigenen Annahmen und keine Vorhersage.
       Gebühren-, Steuersätze und Orientierungswerte der Aufsicht: Österreich, Stand Oktober 2026. Steuerberechnungen sind vereinfachte Schätzungen. Kredit Pilot ersetzt kein verbindliches Angebot und keine Rechts-, Steuer- oder Anlageberatung.{' '}
-      <a href="#quellen" onClick={(e) => { e.preventDefault(); patch({ section: 'quellen' }); }} className="font-medium text-accent underline underline-offset-2">Quellen und Annahmen ansehen</a>
+      <Link to="quellen" className="font-medium text-accent underline underline-offset-2">Quellen und Annahmen ansehen</Link>
     </footer>
   );
   const credit = (
     <>
-      <LegalLinks onOpen={(p) => patch({ section: p })} />
+      <LegalLinks />
       <p className="text-center text-[11px] leading-snug text-muted">
         <strong>Impressum:</strong> Private, nicht kommerzielle Webseite ohne Unternehmen. Keine Werbung, keine Einnahmen. Alle Berechnungen ohne Gewähr.
       </p>
@@ -226,13 +282,13 @@ export default function App() {
       <a href="#inhalt" className="skip-link" onClick={(e) => { e.preventDefault(); document.getElementById('inhalt')?.focus(); }}>Zum Inhalt springen</a>
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0">
-          <button type="button" onClick={() => patch({ section: 'start' })} title="Zur Startseite" className="flex min-w-0 items-center gap-3 rounded-xl text-left">
+          <Link to="start" className="flex min-w-0 items-center gap-3 rounded-xl text-left">
             <img src={logo} alt="Logo von Kredit Pilot" width={48} height={48} className="h-12 w-12 shrink-0" />
             <span className="min-w-0">
               <span className="block font-display text-2xl font-bold leading-none tracking-tight">Kredit <span className="text-accent">Pilot</span></span>
               <span className="mt-1 block text-sm font-normal text-muted">Kredit, Finanzierung und Vermietung einfach verstehen</span>
             </span>
-          </button>
+          </Link>
         </h1>
         <div className="flex flex-wrap items-center gap-2">
           {!plain && <Button onClick={() => patch({ ...DEFAULT_STATE, viewMode: 'erweitert', section: 'kredit', manualLoan: true, manualLoanAmount: 119000 })}>Beispiel: 119.000 € Kredit</Button>}
@@ -249,6 +305,7 @@ export default function App() {
 
       <main id="inhalt" tabIndex={-1} className="outline-none">
       {isLegal(section) && <div className="flex flex-col gap-4"><Legal page={section} onBack={() => patch({ section: 'start' })} onCleared={() => setS((prev) => ({ ...DEFAULT_STATE, viewMode: prev.viewMode, section: prev.section }))} />{credit}</div>}
+      {section === 'ratgeber' && <div className="flex flex-col gap-4"><Ratgeber slug={activeSlug} onCta={openCta} />{credit}</div>}
       {section === 'quellen' && <div className="flex flex-col gap-4"><Sources onBack={() => patch({ section: 'start' })} />{credit}</div>}
       {section === 'immobilien' && (
         <div className="flex flex-col gap-4">
@@ -258,13 +315,12 @@ export default function App() {
           {credit}
         </div>
       )}
-      {section === 'start' && <div className="flex flex-col gap-4"><Landing onChoose={(c) => patch(c === 'kredit' ? { section: 'kredit', loanOnly: true, manualLoan: true, manualLoanAmount: s.loanOnly ? s.manualLoanAmount : 20000, termYears: s.loanOnly ? s.termYears : 7 }
-        : c === 'kauf' ? { section: 'kredit', loanOnly: false, manualLoan: false, termYears: s.loanOnly ? 30 : s.termYears } : { section: 'invest' })}
+      {section === 'start' && <div className="flex flex-col gap-4"><Landing onChoose={choose}
         onOpen={(sec, adv) => patch(adv ? { section: sec, viewMode: 'erweitert' } : { section: sec })} />{credit}</div>}
-      {section === 'vergleich' && <div className="flex flex-col gap-4"><Comparison s={s} patch={patch} a={a} projects={projects} />{footer}{credit}</div>}
-      {section === 'leistbarkeit' && <div className="flex flex-col gap-4">{pausedBanner}<AffordSection s={s} patch={patch} a={a} advanced={advanced} />{footer}{credit}</div>}
-      {section === 'umschuldung' && <div className="flex flex-col gap-4"><RefiSection s={s} patch={patch} a={a} />{footer}{credit}</div>}
-      {section === 'tilgen' && <div className="flex flex-col gap-4"><PoiSection s={s} patch={patch} a={a} />{footer}{credit}</div>}
+      {section === 'vergleich' && <div className="flex flex-col gap-4"><Suspense fallback={<Loading />}><Comparison s={s} patch={patch} a={a} projects={projects} /></Suspense>{footer}{credit}</div>}
+      {section === 'leistbarkeit' && <div className="flex flex-col gap-4">{pausedBanner}<Suspense fallback={<Loading />}><AffordSection s={s} patch={patch} a={a} advanced={advanced} /></Suspense>{footer}{credit}</div>}
+      {section === 'umschuldung' && <div className="flex flex-col gap-4"><Suspense fallback={<Loading />}><RefiSection s={s} patch={patch} a={a} /></Suspense>{footer}{credit}</div>}
+      {section === 'tilgen' && <div className="flex flex-col gap-4"><Suspense fallback={<Loading />}><PoiSection s={s} patch={patch} a={a} /></Suspense>{footer}{credit}</div>}
 
       {(section === 'kredit' || invest) && (
         <TwoCol aside={
@@ -290,6 +346,7 @@ export default function App() {
           </>
         }>
           {pausedBanner}
+          <Suspense fallback={<Loading />}>
           {invest ? (
             advanced ? <AdvancedInvest a={a} raw={s} patch={patch} projects={projects} /> : <SimpleInvest a={a} raw={s} />
           ) : principal <= 0 ? (
@@ -349,6 +406,7 @@ export default function App() {
               </div>
             </>
           )}
+          </Suspense>
           {footer}
           {credit}
         </TwoCol>
@@ -374,16 +432,16 @@ export default function App() {
 
       {/* Umschalter links unten: vereinfachte oder erweiterte Ansicht */}
       <div hidden={plain} className="fixed left-3 z-30 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:bottom-4 lg:left-4">
-        <div role="radiogroup" aria-label="Ansicht" onKeyDown={(e) => radioKeys(e, ['einfach', 'erweitert'] as const as AppState['viewMode'][], s.viewMode, (v) => patch({ viewMode: v }))} className="inline-flex gap-1 rounded-full border border-line bg-surface p-1 shadow-lg">
+        <div role="radiogroup" aria-label="Ansicht" onKeyDown={(e) => radioKeys(e, ['einfach', 'erweitert'] as const as AppState['viewMode'][], s.viewMode, setView)} className="inline-flex gap-1 rounded-full border border-line bg-surface p-1 shadow-lg">
           {([['einfach', 'Vereinfachte Ansicht'], ['erweitert', 'Erweiterte Ansicht']] as const).map(([value, label]) => (
-            <button key={value} type="button" role="radio" aria-checked={s.viewMode === value} tabIndex={s.viewMode === value ? 0 : -1} onClick={() => patch({ viewMode: value })}
+            <button key={value} type="button" role="radio" aria-checked={s.viewMode === value} tabIndex={s.viewMode === value ? 0 : -1} onClick={() => setView(value)}
               className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${s.viewMode === value ? 'bg-accent text-accentfg' : 'text-muted hover:text-fg'}`}>
               {label}
             </button>
           ))}
         </div>
       </div>
-      <ConsentBanner onMore={() => patch({ section: 'cookies' })} />
+      <ConsentBanner />
     </div>
   );
 }

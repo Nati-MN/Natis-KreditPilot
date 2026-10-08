@@ -11,6 +11,7 @@ export const STORAGE_KEYS: { key: string; purpose: string }[] = [
   { key: 'kreditpilot.scenarios.v1', purpose: 'Von dir gespeicherte Szenarien' },
   { key: 'kreditpilot.theme', purpose: 'Deine Wahl von hellem oder dunklem Modus' },
   { key: KEY, purpose: 'Deine Entscheidung zur Besucherzählung' },
+  { key: 'kreditpilot.reloaded', purpose: 'Merkt sich bis zum Schließen des Tabs, dass die Seite nach einer Aktualisierung einmal neu geladen wurde' },
 ];
 
 /** Im Build abschaltbar (z. B. für Vorschauen ohne Vercel). */
@@ -51,6 +52,7 @@ export function loadAnalytics(): void {
 export function clearLocalData(): boolean {
   try {
     for (const k of STORAGE_KEYS) localStorage.removeItem(k.key);
+    sessionStorage.removeItem('kreditpilot.reloaded');
     localStorage.removeItem('kreditpilot.state.v2');
     localStorage.removeItem('kreditpilot.state.v1');
     return true;

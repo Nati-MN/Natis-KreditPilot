@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { buildReportPdf, buildWorkbook, csvFromTable, formatPlan, MIME, planTable, saveFile, toBlob, type PlanView, type Report } from '../lib/export';
+import { buildWorkbook, csvFromTable, formatPlan, MIME, planTable, saveFile, toBlob, type PlanView, type Report } from '../lib/export';
 import { euro } from '../lib/format';
 import type { LoanResult } from '../lib/loan';
 import { Button, Card, DateBox, Segmented, Select } from './ui';
@@ -26,7 +26,7 @@ export function ScheduleTable({ result, report, scenarios = [] }: { result: Loan
     try {
       const full: Report = { ...report, view };
       const blob = kind === 'csv' ? toBlob(csvFromTable(table.head, text), MIME.csv)
-        : kind === 'pdf' ? toBlob(buildReportPdf(full), MIME.pdf)
+        : kind === 'pdf' ? toBlob((await import('../lib/pdf')).buildReportPdf(full), MIME.pdf)
         : toBlob(buildWorkbook(full, scenarios), MIME.xlsx);
       setMessage(await saveFile(`kredit-pilot-${kind === 'csv' ? `tilgungsplan-${view}` : 'bericht'}.${kind}`, blob));
     } catch {

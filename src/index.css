@@ -75,3 +75,15 @@ input[type='range'].kp-range::-moz-range-thumb {
 /* Sprunglink für Tastatur und Screenreader */
 .skip-link { position: absolute; left: 12px; top: -60px; z-index: 50; border-radius: 10px; background: var(--accent); color: var(--accent-fg); padding: 8px 14px; font-weight: 600; }
 .skip-link:focus { top: 12px; }
+
+/* Statischer Seiteninhalt, den der Build in jede HTML-Datei schreibt. Er ist sofort lesbar
+   (auch für Suchmaschinen und ohne JavaScript) und wird ersetzt, sobald die Rechner geladen sind. */
+.kp-static { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+.kp-static h1 { font-family: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif; font-size: 30px; font-weight: 700; line-height: 1.15; margin: 8px 0 12px; }
+.kp-static h2 { font-size: 18px; font-weight: 700; margin: 24px 0 4px; }
+.kp-static p, .kp-static li { line-height: 1.6; margin-top: 8px; }
+.kp-static ul { list-style: disc; padding-left: 20px; }
+.kp-static a { color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+.kp-static .kp-brand { font-weight: 700; color: var(--muted); }
+.kp-static nav { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 12px; }
+.kp-static nav ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }

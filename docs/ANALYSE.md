@@ -133,3 +133,19 @@ Alle Module rechnen Kredite ausschließlich über `calculateLoan`. Neue Abhängi
 - `export.test.ts` (4): Tabellenwerte gleich Ergebnisobjekt, CSV-Format und Formelschutz, Excel und PDF werden erzeugt.
 
 Zusätzlich einmalig von Hand geprüft: Browser-Durchlauf durch alle Bereiche in Desktop- und Handybreite ohne Fehlermeldungen; PDF-, Excel-, CSV- und JSON-Download im Browser ausgelöst und die Dateien geöffnet.
+
+## 8. Etappe „Auffindbarkeit, Ladezeit, App“ (8. Oktober 2026)
+
+Umgesetzt und geprüft:
+
+- Eigene Adresse je Bereich statt `#`-Anker (`src/lib/routes.ts`); der Build schreibt je Adresse eine HTML-Datei mit Titel, Beschreibung, kanonischer Adresse, Vorschaubild-Angaben, strukturierten Daten und lesbarem Inhalt.
+- `sitemap.xml`, `robots.txt`, `404.html`, Vorschaubild `og.png`.
+- Sechs Ratgebertexte (`src/lib/articles.ts`); jede Zahl in den Rechenbeispielen wird in `articles.test.ts` mit dem Rechenkern nachgerechnet.
+- Ladezeit: statt einer Datei mit 1,93 MB lädt die Startseite rund 350 kB Programmcode (114 kB komprimiert). Diagramme, Rechner-Ansichten und PDF-Export kommen bei Bedarf nach.
+- Installierbar als App mit Offline-Betrieb (`public/manifest.webmanifest`, `public/sw.js`).
+
+Geprüft mit 81 automatischen Tests und im Browser (Chromium) gegen einen lokalen Server, der Adressen wie Vercel auflöst: Direktaufruf jeder Adresse, Zurück- und Vor-Taste, alte `#`-Links, unbekannte Adressen, PDF-Export, Betrieb ohne Netz.
+
+Nicht geprüft: das Verhalten auf Vercel selbst (`vercel.json`), die Installation auf echten Telefonen, Safari und Firefox, die Darstellung in Suchmaschinen und Link-Vorschauen.
+
+Offen: Die Symbole für die Installation sind aus dem 160-Pixel-Logo hochgerechnet und leicht unscharf; ein Original mit mindestens 512 Pixeln wäre besser. Seiten wie Datenschutz und Quellen haben als statischen Inhalt nur Überschrift und Kurzbeschreibung.
