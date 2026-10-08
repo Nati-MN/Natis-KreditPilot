@@ -40,7 +40,7 @@ export function ExtraSimulator({ a, effect }: { a: Analysis; effect: ExtraEffect
       <Card title="Sondertilgungs-Kalender" className="xl:col-span-2">
         <div className="max-h-64 overflow-auto rounded-xl border border-line">
           <table className="w-full border-collapse text-sm">
-            <thead><tr className="bg-surface2 text-[12px] uppercase tracking-wide text-muted"><th className="px-3 py-2 text-left font-semibold">Datum</th><th className="px-3 py-2 text-right font-semibold">Kreditmonat</th><th className="px-3 py-2 text-right font-semibold">Sondertilgung</th><th className="px-3 py-2 text-right font-semibold">Restschuld danach</th></tr></thead>
+            <thead><tr className="bg-surface2 text-[12px] uppercase tracking-wide text-muted"><th scope="col" className="px-3 py-2 text-left font-semibold">Datum</th><th scope="col" className="px-3 py-2 text-right font-semibold">Kreditmonat</th><th scope="col" className="px-3 py-2 text-right font-semibold">Sondertilgung</th><th scope="col" className="px-3 py-2 text-right font-semibold">Restschuld danach</th></tr></thead>
             <tbody>
               {planned.slice(0, 600).map((r) => (
                 <tr key={r.month} className="border-t border-line"><td className="num px-3 py-1.5">{dateDe(r.date)}</td><td className="num px-3 py-1.5 text-right">{r.month}</td><td className="num px-3 py-1.5 text-right font-medium text-good">{euro(r.extra)}</td><td className="num px-3 py-1.5 text-right">{euro(r.balance)}</td></tr>
@@ -83,8 +83,8 @@ export function RateSimulator({ a }: { a: Analysis }) {
         <div className="mt-3 overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead><tr className="bg-surface2 text-[12px] uppercase tracking-wide text-muted">
-              <th className="px-3 py-2 text-left font-semibold">Szenario</th><th className="px-3 py-2 text-right font-semibold">Zins ab Jahr {fixYears + 1}</th><th className="px-3 py-2 text-right font-semibold">Neue Rate</th>
-              <th className="px-3 py-2 text-right font-semibold">Gesamtzinsen</th><th className="px-3 py-2 text-right font-semibold">Mehrkosten / Ersparnis</th>
+              <th scope="col" className="px-3 py-2 text-left font-semibold">Szenario</th><th scope="col" className="px-3 py-2 text-right font-semibold">Zins ab Jahr {fixYears + 1}</th><th scope="col" className="px-3 py-2 text-right font-semibold">Neue Rate</th>
+              <th scope="col" className="px-3 py-2 text-right font-semibold">Gesamtzinsen</th><th scope="col" className="px-3 py-2 text-right font-semibold">Mehrkosten / Ersparnis</th>
             </tr></thead>
             <tbody>
               {scenarios.map((x) => (

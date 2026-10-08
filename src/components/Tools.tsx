@@ -78,7 +78,7 @@ export function AffordSection({ s, patch, a, advanced }: { s: AppState; patch: P
         )}
       </>
     }>
-      <div className={`rounded-card p-5 text-surface ${ok ? 'bg-good' : r.status === 'knapp' ? 'bg-zins' : 'bg-bad'}`}>
+      <div className={`rounded-card p-5 ${ok ? 'bg-good text-surface' : r.status === 'knapp' ? 'bg-zins text-onwarn' : 'bg-bad text-surface'}`}>
         <div className="text-sm font-medium opacity-90">{r.surplus >= 0 ? 'Nach allen Ausgaben und der Kreditrate bleiben dir' : 'Dir fehlen pro Monat'}</div>
         <div className="num mt-1 font-display text-[40px] font-bold leading-none tracking-tight">{euro(Math.abs(r.surplus))}</div>
         <p className="mt-2 text-sm opacity-95">
@@ -112,8 +112,8 @@ export function AffordSection({ s, patch, a, advanced }: { s: AppState; patch: P
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead><tr className="bg-surface2 text-[12px] uppercase tracking-wide text-muted">
-              <th className="px-3 py-2 text-left font-semibold">Szenario</th><th className="px-3 py-2 text-right font-semibold">Einkommen</th><th className="px-3 py-2 text-right font-semibold">Ausgaben</th>
-              <th className="px-3 py-2 text-right font-semibold">Kreditrate</th><th className="px-3 py-2 text-right font-semibold">Bleibt übrig</th><th className="px-3 py-2 text-right font-semibold">Quote</th><th className="px-3 py-2 text-right font-semibold">Einschätzung</th>
+              <th scope="col" className="px-3 py-2 text-left font-semibold">Szenario</th><th scope="col" className="px-3 py-2 text-right font-semibold">Einkommen</th><th scope="col" className="px-3 py-2 text-right font-semibold">Ausgaben</th>
+              <th scope="col" className="px-3 py-2 text-right font-semibold">Kreditrate</th><th scope="col" className="px-3 py-2 text-right font-semibold">Bleibt übrig</th><th scope="col" className="px-3 py-2 text-right font-semibold">Quote</th><th scope="col" className="px-3 py-2 text-right font-semibold">Einschätzung</th>
             </tr></thead>
             <tbody>
               {r.scenarios.map((x) => (
@@ -276,8 +276,8 @@ export function PoiSection({ s, patch, a }: { s: AppState; patch: Patch; a: Anal
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead><tr className="bg-surface2 text-[12px] uppercase tracking-wide text-muted">
-              <th className="px-3 py-2 text-left font-semibold">Szenario</th><th className="px-3 py-2 text-right font-semibold">Depot vor Steuer</th><th className="px-3 py-2 text-right font-semibold">Kosten</th><th className="px-3 py-2 text-right font-semibold">Steuer</th>
-              <th className="px-3 py-2 text-right font-semibold">Vermögen: investieren</th><th className="px-3 py-2 text-right font-semibold">Vermögen: tilgen</th><th className="px-3 py-2 text-right font-semibold">Vorteil Investieren</th>
+              <th scope="col" className="px-3 py-2 text-left font-semibold">Szenario</th><th scope="col" className="px-3 py-2 text-right font-semibold">Depot vor Steuer</th><th scope="col" className="px-3 py-2 text-right font-semibold">Kosten</th><th scope="col" className="px-3 py-2 text-right font-semibold">Steuer</th>
+              <th scope="col" className="px-3 py-2 text-right font-semibold">Vermögen: investieren</th><th scope="col" className="px-3 py-2 text-right font-semibold">Vermögen: tilgen</th><th scope="col" className="px-3 py-2 text-right font-semibold">Vorteil Investieren</th>
             </tr></thead>
             <tbody>
               {r.scenarios.map((x) => (

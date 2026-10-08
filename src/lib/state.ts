@@ -6,7 +6,8 @@ import { DEFAULT_POI, type PoiState } from './payinvest';
 import { DEFAULT_REFI, type RefiState } from './refinance';
 import { DEFAULT_PURCHASE_ITEMS, purchaseCostsDetail, type PurchaseItem } from './purchase';
 
-export type Section = 'start' | 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest';
+export type Section = 'start' | 'kredit' | 'vergleich' | 'leistbarkeit' | 'umschuldung' | 'tilgen' | 'invest' | 'datenschutz' | 'nutzung' | 'cookies' | 'erstattung';
+export const SECTIONS: Section[] = ['start', 'kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest', 'datenschutz', 'nutzung', 'cookies', 'erstattung'];
 export type TermMode = 'laufzeit' | 'tilgung' | 'rate';
 
 export interface LoanFees {
@@ -264,7 +265,7 @@ export function normalize(saved: unknown): AppState {
   const oneOf = <T,>(value: T, allowed: readonly T[], def: T): T => (allowed.includes(value) ? value : def);
   const D = DEFAULT_STATE;
   base.viewMode = oneOf(base.viewMode, ['einfach', 'erweitert'], D.viewMode);
-  base.section = oneOf(base.section, ['start', 'kredit', 'vergleich', 'leistbarkeit', 'umschuldung', 'tilgen', 'invest'], D.section);
+  base.section = oneOf(base.section, SECTIONS, D.section);
   base.costsMode = oneOf(base.costsMode, ['detail', 'percent', 'euro'], D.costsMode);
   base.mode = oneOf(base.mode, ['fix', 'variabel'], D.mode);
   base.loanType = oneOf(base.loanType, ['annuitaet', 'raten', 'endfaellig'], D.loanType);
@@ -462,7 +463,11 @@ function write(key: string, value: unknown): boolean {
 }
 
 /** Beim Öffnen der Seite beginnt man immer auf der Startseite; die Eingaben bleiben erhalten. */
-export const loadState = (): AppState => ({ ...normalize(read<unknown>(KEY_STATE)), section: 'start' });
+export function loadState(): AppState {
+  // Ein Anker in der Adresse (z. B. #datenschutz) öffnet direkt diesen Bereich.
+  const hash = typeof location !== 'undefined' ? (location.hash.slice(1) as Section) : 'start';
+  return { ...normalize(read<unknown>(KEY_STATE)), section: SECTIONS.includes(hash) ? hash : 'start' };
+}
 export const saveState = (s: AppState) => write(KEY_STATE, s);
 
 export interface SavedScenario {

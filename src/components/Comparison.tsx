@@ -39,8 +39,8 @@ function CompareTable({ columns, rows }: { columns: string[]; rows: { label: str
       <table className="w-full border-collapse text-sm" style={{ minWidth: `${190 + columns.length * 150}px` }}>
         <thead>
           <tr className="bg-surface2">
-            <th className="px-3 py-2 text-left font-semibold" />
-            {columns.map((c, i) => <th key={i} className="px-3 py-2 text-right font-semibold"><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ background: SERIES[i % SERIES.length] }} />{c}</th>)}
+            <th scope="col" className="px-3 py-2 text-left font-semibold" />
+            {columns.map((c, i) => <th scope="col" key={i} className="px-3 py-2 text-right font-semibold"><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ background: SERIES[i % SERIES.length] }} />{c}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -164,10 +164,10 @@ function OfferCompare({ s, patch, a }: { s: AppState; patch: Patch; a: Analysis 
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead><tr className="bg-surface2 text-left">
-              <th className="px-3 py-2 font-semibold">Angebot</th>
-              <th className="px-3 py-2 font-semibold">Kosten<InfoTip term="Bewertung Kosten" text="Nach dem Effektivzins: der niedrigste erhält 5, der höchste 1, dazwischen linear." /></th>
-              <th className="px-3 py-2 font-semibold">Flexibilität<InfoTip term="Bewertung Flexibilität" text="1 Punkt Grundwert, bis zu 3 Punkte für das Sondertilgungsrecht (unbegrenzt 3, ab 10 % pro Jahr 2, darunter 1) und 1 Punkt, wenn keine Entschädigung anfällt." /></th>
-              <th className="px-3 py-2 font-semibold">Zinssicherheit<InfoTip term="Bewertung Zinssicherheit" text="5 bei Fixzins über die gesamte Laufzeit, 1 bei vollständig variablem Zins, dazwischen nach dem Anteil der variablen Jahre." /></th>
+              <th scope="col" className="px-3 py-2 font-semibold">Angebot</th>
+              <th scope="col" className="px-3 py-2 font-semibold">Kosten<InfoTip term="Bewertung Kosten" text="Nach dem Effektivzins: der niedrigste erhält 5, der höchste 1, dazwischen linear." /></th>
+              <th scope="col" className="px-3 py-2 font-semibold">Flexibilität<InfoTip term="Bewertung Flexibilität" text="1 Punkt Grundwert, bis zu 3 Punkte für das Sondertilgungsrecht (unbegrenzt 3, ab 10 % pro Jahr 2, darunter 1) und 1 Punkt, wenn keine Entschädigung anfällt." /></th>
+              <th scope="col" className="px-3 py-2 font-semibold">Zinssicherheit<InfoTip term="Bewertung Zinssicherheit" text="5 bei Fixzins über die gesamte Laufzeit, 1 bei vollständig variablem Zins, dazwischen nach dem Anteil der variablen Jahre." /></th>
             </tr></thead>
             <tbody>
               {metrics.map((m, i) => (

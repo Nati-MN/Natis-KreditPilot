@@ -20,7 +20,7 @@ export function CashflowChart({ p, afterTax }: { p: Projection; afterTax: boolea
   const data = p.years.map((y) => ({ jahr: y.year, Cashflow: Math.round(((afterTax ? y.cashflowAfterTax : y.cashflow) / 12) * 100) / 100 }));
   return (
     <Card title="Monatlicher Cashflow" action={<Badge>{afterTax ? 'nach Steuern' : 'vor Steuern'}</Badge>}>
-      <div className="h-60">
+      <div role="img" aria-label="Balkendiagramm: durchschnittlicher monatlicher Cashflow je Jahr. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="h-60">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={M}>
             {GRID}
@@ -49,7 +49,7 @@ export function IncomeExpenseChart({ a }: { a: Analysis }) {
   return (
     <Card title="Einnahmen gegen Ausgaben">
       <Legend items={[{ color: 'var(--good)', label: 'Miete' }, { color: 'var(--alt)', label: 'Vermieterkosten' }, { color: 'var(--muted)', label: 'Leerstandskosten' }, { color: 'var(--zins)', label: 'Zinsen' }, { color: 'var(--tilgung)', label: 'Tilgung' }]} />
-      <div className="mt-2 h-60">
+      <div role="img" aria-label="Balkendiagramm: Mieteinnahmen gegen Ausgaben in einem typischen Monat. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="mt-2 h-60">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={M} barCategoryGap="28%">
             {GRID}
@@ -75,7 +75,7 @@ export function YieldChart({ p }: { p: Projection }) {
   return (
     <Card title="Mietrendite im Zeitverlauf" action={<Badge>Prognose</Badge>}>
       <Legend items={[{ color: 'var(--accent)', label: 'Brutto auf Kaufpreis' }, { color: 'var(--rest)', label: 'Netto auf Gesamtinvestition' }]} />
-      <div className="mt-2 h-60">
+      <div role="img" aria-label="Liniendiagramm: Brutto- und Nettomietrendite je Jahr. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="mt-2 h-60">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={M}>
             {GRID}
@@ -107,7 +107,7 @@ export function ValueChart({ a }: { a: Analysis }) {
   return (
     <Card title="Immobilienwert gegen Restschuld" action={<Badge>Prognose</Badge>}>
       <Legend items={[{ color: 'var(--accent)', label: 'Immobilienwert' }, { color: 'var(--zins)', label: 'Restschuld' }, { color: 'var(--good)', label: 'Eigenkapital in der Immobilie' }]} />
-      <div className="mt-2 h-60">
+      <div role="img" aria-label="Liniendiagramm: Immobilienwert, Restschuld und Eigenkapital über die Jahre. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="mt-2 h-60">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={M}>
             {GRID}
@@ -133,7 +133,7 @@ export function FixVarChart({ current, fix, variable, labelVar }: { current: Pro
   return (
     <Card title="Cashflow: Fixzins gegen variablen Zins" action={<Badge>Annahme</Badge>}>
       <Legend items={[{ color: 'var(--tilgung)', label: 'Fixzins durchgehend' }, { color: 'var(--alt)', label: labelVar }]} />
-      <div className="mt-2 h-60">
+      <div role="img" aria-label="Liniendiagramm: Cashflow bei durchgehendem Fixzins und bei variablem Zins. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="mt-2 h-60">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={M}>
             {GRID}
@@ -160,7 +160,7 @@ export function CumulativeChart({ p, afterTax, ownFunds }: { p: Projection; afte
   return (
     <Card title="Kumulierte Gewinne und Verluste" action={<Badge>Prognose</Badge>}>
       <Legend items={[{ color: 'var(--rest)', label: 'Kumulierter Cashflow' }, { color: 'var(--accent)', label: 'Vermögenszuwachs inkl. Immobilie' }]} />
-      <div className="mt-2 h-60">
+      <div role="img" aria-label="Liniendiagramm: kumulierter Cashflow und Vermögenszuwachs über die Jahre. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="mt-2 h-60">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={M}>
             {GRID}
@@ -184,7 +184,7 @@ function Donut({ title, data, center, foot }: { title: string; data: { name: str
   return (
     <Card title={title}>
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-        <div className="relative h-48 w-48 max-w-full">
+        <div role="img" aria-label={`Ringdiagramm: ${title}. Die Werte stehen daneben.`} className="relative h-48 w-48 max-w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={rows} dataKey="value" nameKey="name" innerRadius="62%" outerRadius="95%" startAngle={90} endAngle={-270} paddingAngle={rows.length > 1 ? 2 : 0} stroke="none" animationDuration={ANIM}>

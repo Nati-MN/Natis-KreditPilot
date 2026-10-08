@@ -8,10 +8,10 @@ export default {
         bg: 'var(--bg)', surface: 'var(--surface)', surface2: 'var(--surface-2)', line: 'var(--line)',
         fg: 'var(--fg)', muted: 'var(--muted)', accent: 'var(--accent)', accentfg: 'var(--accent-fg)',
         accentsoft: 'var(--accent-soft)', zins: 'var(--zins)', tilgung: 'var(--tilgung)',
-        rest: 'var(--rest)', alt: 'var(--alt)', good: 'var(--good)', bad: 'var(--bad)',
+        rest: 'var(--rest)', alt: 'var(--alt)', good: 'var(--good)', bad: 'var(--bad)', zinstext: 'var(--zins-text)', onwarn: 'var(--on-warn)',
       },
       fontFamily: {
-        display: ['"Bricolage Grotesque"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['"Bricolage Grotesque Variable"', '"Bricolage Grotesque"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       borderRadius: { card: '18px' },

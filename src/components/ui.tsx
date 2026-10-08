@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { parseNumber } from '../lib/format';
 
 export function Card({ title, children, action, className = '', collapsible, defaultOpen = true, summary }: {
@@ -53,17 +53,32 @@ export function Select<T extends string | number>({ id, value, options, onChange
   );
 }
 
+/** Pfeiltasten wechseln innerhalb einer Auswahlgruppe (wie bei Radioknöpfen üblich), Pos1/Ende springen an den Rand. */
+export function radioKeys<T>(e: React.KeyboardEvent<HTMLElement>, values: T[], current: T, onChange: (v: T) => void) {
+  const i = values.indexOf(current);
+  const next = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % values.length
+    : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + values.length) % values.length
+    : e.key === 'Home' ? 0 : e.key === 'End' ? values.length - 1 : -1;
+  if (next < 0) return;
+  e.preventDefault();
+  onChange(values[next]);
+  const buttons = e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]');
+  buttons[next]?.focus();
+}
+
 export function Segmented<T extends string>({ value, options, onChange, label, size = 'md' }: {
   value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string; size?: 'sm' | 'md';
 }) {
+  const known = options.some((o) => o.value === value);
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex max-w-full flex-wrap gap-1 rounded-xl bg-surface2 p-1">
-      {options.map((o) => (
+    <div role="radiogroup" aria-label={label} onKeyDown={(e) => radioKeys(e, options.map((o) => o.value), value, onChange)} className="inline-flex max-w-full flex-wrap gap-1 rounded-xl bg-surface2 p-1">
+      {options.map((o, i) => (
         <button
           key={o.value}
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          tabIndex={value === o.value || (!known && i === 0) ? 0 : -1}
           onClick={() => onChange(o.value)}
           className={`rounded-lg font-medium transition-colors ${size === 'sm' ? 'px-2.5 py-1 text-[13px]' : 'px-3 py-1.5 text-sm'} ${
             value === o.value ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg'
@@ -198,6 +213,7 @@ export function NumberBox({ id, value, min, max, onChange, unit, decimals = 0, o
         id={id}
         aria-label={ariaLabel}
         aria-invalid={bad}
+        aria-describedby={bad ? `${id}-fehler` : undefined}
         inputMode="decimal"
         autoComplete="off"
         className="num w-full min-w-0 bg-transparent py-1.5 text-right text-sm font-medium outline-none"
@@ -260,7 +276,7 @@ export function SliderField({ id, label, value, min, max, step, unit, decimals =
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
       />
-      {error ? <p role="alert" className="text-[13px] text-bad">{error}</p> : hint ? <p className="text-[13px] text-muted">{hint}</p> : null}
+      {error ? <p id={`${id}-zahl-fehler`} role="alert" className="text-[13px] text-bad">{error}</p> : hint ? <p className="text-[13px] text-muted">{hint}</p> : null}
     </div>
   );
 }
@@ -334,16 +350,16 @@ export function ScoreBar({ value, label }: { value: number; label: string }) {
 }
 
 export function StatusPill({ status }: { status: 'ok' | 'knapp' | 'kritisch' }) {
-  const map = { ok: ['bg-good', 'In Ordnung'], knapp: ['bg-zins', 'Knapp'], kritisch: ['bg-bad', 'Kritisch'] } as const;
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold text-surface ${map[status][0]}`}>{map[status][1]}</span>;
+  const map = { ok: ['bg-good text-surface', 'In Ordnung'], knapp: ['bg-zins text-onwarn', 'Knapp'], kritisch: ['bg-bad text-surface', 'Kritisch'] } as const;
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold ${map[status][0]}`}>{map[status][1]}</span>;
 }
 
 /** Zweispaltiges Layout: Eingaben links (auf großen Bildschirmen fixiert), Ergebnisse rechts. */
 export function TwoCol({ aside, children }: { aside: ReactNode; children: ReactNode }) {
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
-      <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pb-16 lg:pr-1">{aside}</aside>
-      <main className="flex min-w-0 flex-col gap-4">{children}</main>
+      <aside aria-label="Eingaben" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pb-16 lg:pr-1">{aside}</aside>
+      <div className="flex min-w-0 flex-col gap-4">{children}</div>
     </div>
   );
 }

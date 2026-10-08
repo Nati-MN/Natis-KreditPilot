@@ -36,7 +36,7 @@ export function ScheduleTable({ result, report, scenarios = [] }: { result: Loan
 
   const th = 'sticky top-0 z-10 whitespace-nowrap bg-surface2 px-3 py-2 text-right text-[12px] font-semibold uppercase tracking-wide text-muted';
   const td = 'num whitespace-nowrap px-3 py-1.5 text-right';
-  const color = (h: string) => (h === 'Zinsen' ? 'text-zins' : h === 'Tilgung' ? 'text-tilgung' : h === 'Restschuld' ? 'font-medium' : '');
+  const color = (h: string) => (h === 'Zinsen' ? 'text-zinstext' : h === 'Tilgung' ? 'text-tilgung' : h === 'Restschuld' ? 'font-medium' : '');
   const unit = (i: number) => (table.kinds[i] === 'eur' ? ' €' : table.kinds[i] === 'rate' ? ' %' : '');
   const firstNum = view === 'jahr' ? 1 : 2;
 
@@ -70,7 +70,7 @@ export function ScheduleTable({ result, report, scenarios = [] }: { result: Loan
       <div className="max-h-[600px] overflow-auto rounded-xl border border-line">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr>{cols.map((c) => <th key={c.h} className={`${th} ${c.i < firstNum ? 'text-left' : ''}`}>{c.h}</th>)}</tr>
+            <tr>{cols.map((c) => <th scope="col" key={c.h} className={`${th} ${c.i < firstNum ? 'text-left' : ''}`}>{c.h}</th>)}</tr>
           </thead>
           <tbody>
             {visible.length === 0 && <tr><td colSpan={cols.length} className="px-3 py-4 text-center text-muted">In diesem Monat gibt es keine Zahlung.</td></tr>}

@@ -19,7 +19,7 @@ export function Landing({ onOpen }: { onOpen: (section: Target, advanced: boolea
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col items-center gap-8 py-6 text-center sm:py-12">
       <div className="flex flex-col items-center gap-4">
-        <img src={logo} alt="" width={88} height={88} className="h-[88px] w-[88px]" />
+        <img src={logo} alt="" aria-hidden="true" width={88} height={88} className="h-[88px] w-[88px]" />
         <h2 className="font-display text-[30px] font-bold leading-tight tracking-tight sm:text-[38px]">Was kostet mein Kredit?</h2>
         <p className="max-w-[46ch] text-base leading-relaxed text-muted">
           Kredit Pilot rechnet es dir in Sekunden aus. Kostenlos, ohne Anmeldung, für Österreich.

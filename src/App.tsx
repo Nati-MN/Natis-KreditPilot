@@ -5,18 +5,20 @@ import { ExtraPanel } from './components/ExtraPanel';
 import { CostsPanel, LoanSummary, RentPanel, RiskPanel, TaxPanel } from './components/InvestSettings';
 import { AdvancedInvest, SimpleInvest } from './components/InvestViews';
 import { Landing } from './components/Landing';
+import { ConsentBanner, isLegal, Legal, LegalLinks } from './components/Legal';
 import { ExtraSimulator, MilestonesPanel, RateSimulator } from './components/LoanTools';
 import { ScheduleTable } from './components/ScheduleTable';
 import { Scenarios } from './components/Scenarios';
 import { FeesPanel, FinancePanel, LoanDetailsPanel, LoanModelPanel } from './components/Settings';
 import { AffordSection, PoiSection, RefiSection } from './components/Tools';
-import { Badge, Button, InfoTip, NumberBox, ResultCard, Segmented, TwoCol } from './components/ui';
+import { Badge, Button, InfoTip, NumberBox, radioKeys, ResultCard, Segmented, TwoCol } from './components/ui';
 import { analyze, type Analysis } from './lib/analysis';
+import { getConsent, loadAnalytics } from './lib/consent';
 import type { Report } from './lib/export';
 import { dateDe, euro, monthYear, percent, signedEuro, years } from './lib/format';
 import { balanceAfterYears, extraEffect, hasExtras, type ExtraEffect } from './lib/loan';
 import { rateScenarios } from './lib/offers';
-import { DEFAULT_STATE, loadScenarios, loadState, loadTheme, normalize, pausedSettings, saveState, saveTheme, type AppState, type SavedScenario, type Section, type ThemeChoice } from './lib/state';
+import { DEFAULT_STATE, loadScenarios, loadState, loadTheme, normalize, pausedSettings, saveState, saveTheme, SECTIONS, type AppState, type SavedScenario, type Section, type ThemeChoice } from './lib/state';
 import logo from './logo.png';
 
 type Tab = 'diagramme' | 'plan' | 'sondertilgung' | 'zinsen' | 'meilensteine';
@@ -109,11 +111,42 @@ export default function App() {
     return () => clearTimeout(t);
   }, [s]);
 
+  // Besucherzählung nur, wenn früher zugestimmt wurde.
+  useEffect(() => {
+    if (getConsent() === 'ja') loadAnalytics();
+  }, []);
+
+  // Zurück-Taste des Browsers: Jeder Bereich bekommt einen Eintrag im Verlauf (#kredit, #invest, ...).
+  // „Zurück“ führt so zum vorher geöffneten Bereich statt von der Webseite weg.
+  useEffect(() => {
+    const fromHash = (): Section => {
+      const h = location.hash.slice(1) as Section;
+      return SECTIONS.includes(h) ? h : 'start';
+    };
+    const onPop = () => setS((prev) => (prev.section === fromHash() ? prev : { ...prev, section: fromHash() }));
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('hashchange', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('hashchange', onPop);
+    };
+  }, []);
+  useEffect(() => {
+    const current = SECTIONS.includes(location.hash.slice(1) as Section) ? location.hash.slice(1) : 'start';
+    if (current === s.section) return;
+    try {
+      history.pushState(null, '', s.section === 'start' ? location.pathname + location.search : `#${s.section}`);
+    } catch {
+      /* in eingebetteten Ansichten nicht erlaubt: dann ohne Verlauf */
+    }
+    window.scrollTo(0, 0);
+  }, [s.section]);
+
   // Eine Analyse für alles: alle Rechner arbeiten mit denselben Kreditdaten.
   const a = useMemo(() => analyze(s), [s]);
   const advanced = s.viewMode === 'erweitert';
   // In der vereinfachten Ansicht gibt es nur drei Bereiche.
-  const section: Section = advanced || ['start', 'kredit', 'leistbarkeit', 'invest'].includes(s.section) ? s.section : 'kredit';
+  const section: Section = advanced || ['start', 'kredit', 'leistbarkeit', 'invest'].includes(s.section) || isLegal(s.section) ? s.section : 'kredit';
   const invest = section === 'invest';
   const result = a.loan;
   const effect = useMemo(() => (hasExtras(a.loanInput.extra, a.loanInput.extraRules) ? extraEffect(a.loanInput, result) : null), [a.loanInput, result]);
@@ -128,6 +161,7 @@ export default function App() {
   const contractMonths = s.termYears * 12;
   const afterFix = variable ? result.paymentAfterFix : null;
   const reset = () => setS({ ...DEFAULT_STATE, viewMode: s.viewMode, section: s.section });
+  const plain = section === 'start' || isLegal(section); // Seiten ohne Rechner-Bedienelemente
   const k = a.s.interval;
   const rateLabel = `${INTERVAL_LABEL[k]} Kreditrate`;
 
@@ -177,6 +211,7 @@ export default function App() {
   );
   const credit = (
     <>
+      <LegalLinks onOpen={(p) => patch({ section: p })} />
       <p className="text-center text-[12px] text-muted">This is a Website created by: "Nati Man"</p>
       <p className="text-center text-[11px] leading-snug text-muted">
         <strong>Impressum:</strong> Private, nicht kommerzielle Webseite ohne Unternehmen. Keine Werbung, keine Einnahmen. Alle Berechnungen ohne Gewähr.
@@ -186,10 +221,11 @@ export default function App() {
 
   return (
     <div className="mx-auto max-w-[1360px] px-4 pb-36 pt-4 sm:px-6 lg:pb-20">
+      <a href="#inhalt" className="skip-link" onClick={(e) => { e.preventDefault(); document.getElementById('inhalt')?.focus(); }}>Zum Inhalt springen</a>
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0">
           <button type="button" onClick={() => patch({ section: 'start' })} title="Zur Startseite" className="flex min-w-0 items-center gap-3 rounded-xl text-left">
-            <img src={logo} alt="" width={48} height={48} className="h-12 w-12 shrink-0" />
+            <img src={logo} alt="Logo von Kredit Pilot" width={48} height={48} className="h-12 w-12 shrink-0" />
             <span className="min-w-0">
               <span className="block font-display text-2xl font-bold leading-none tracking-tight">Kredit <span className="text-accent">Pilot</span></span>
               <span className="mt-1 block text-sm font-normal text-muted">Kredit, Finanzierung und Vermietung einfach verstehen</span>
@@ -197,18 +233,20 @@ export default function App() {
           </button>
         </h1>
         <div className="flex flex-wrap items-center gap-2">
-          {section !== 'start' && <Button onClick={() => patch({ ...DEFAULT_STATE, viewMode: 'erweitert', section: 'kredit', manualLoan: true, manualLoanAmount: 119000 })}>Beispiel: 119.000 € Kredit</Button>}
-          {section !== 'start' && <Button onClick={reset}>Zurücksetzen</Button>}
+          {!plain && <Button onClick={() => patch({ ...DEFAULT_STATE, viewMode: 'erweitert', section: 'kredit', manualLoan: true, manualLoanAmount: 119000 })}>Beispiel: 119.000 € Kredit</Button>}
+          {!plain && <Button onClick={reset}>Zurücksetzen</Button>}
           <button type="button" onClick={toggleTheme} aria-pressed={dark} className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium hover:border-accent hover:text-accent">
             {dark ? 'Heller Modus' : 'Dunkler Modus'}
           </button>
         </div>
       </header>
 
-      <nav className="mb-4" aria-label="Rechner" hidden={section === 'start'}>
+      <nav className="mb-4" aria-label="Rechner" hidden={plain}>
         <Segmented label="Rechner" value={section} onChange={(v) => patch({ section: v })} options={nav} />
       </nav>
 
+      <main id="inhalt" tabIndex={-1} className="outline-none">
+      {isLegal(section) && <div className="flex flex-col gap-4"><Legal page={section} onBack={() => patch({ section: 'start' })} onCleared={() => setS((prev) => ({ ...DEFAULT_STATE, viewMode: prev.viewMode, section: prev.section }))} />{credit}</div>}
       {section === 'start' && <div className="flex flex-col gap-4"><Landing onOpen={(sec, adv) => patch(adv ? { section: sec, viewMode: 'erweitert' } : { section: sec })} />{credit}</div>}
       {section === 'vergleich' && <div className="flex flex-col gap-4"><Comparison s={s} patch={patch} a={a} projects={projects} />{footer}{credit}</div>}
       {section === 'leistbarkeit' && <div className="flex flex-col gap-4">{pausedBanner}<AffordSection s={s} patch={patch} a={a} advanced={advanced} />{footer}{credit}</div>}
@@ -303,8 +341,10 @@ export default function App() {
         </TwoCol>
       )}
 
-      {/* Mobile Leiste mit der wichtigsten Zahl (nicht auf der Startseite) */}
-      <div hidden={section === 'start'} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface px-4 pt-2 lg:hidden" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}>
+      </main>
+
+      {/* Mobile Leiste mit der wichtigsten Zahl (nicht auf Start- und Rechtsseiten) */}
+      <div hidden={plain} aria-hidden="true" className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface px-4 pt-2 lg:hidden" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[12px] text-muted">{k === 1 ? 'Monatsrate' : 'Rate'}</div>
@@ -320,16 +360,17 @@ export default function App() {
       </div>
 
       {/* Umschalter links unten: vereinfachte oder erweiterte Ansicht */}
-      <div hidden={section === 'start'} className="fixed left-3 z-30 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:bottom-4 lg:left-4">
-        <div role="radiogroup" aria-label="Ansicht" className="inline-flex gap-1 rounded-full border border-line bg-surface p-1 shadow-lg">
+      <div hidden={plain} className="fixed left-3 z-30 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:bottom-4 lg:left-4">
+        <div role="radiogroup" aria-label="Ansicht" onKeyDown={(e) => radioKeys(e, ['einfach', 'erweitert'] as const as AppState['viewMode'][], s.viewMode, (v) => patch({ viewMode: v }))} className="inline-flex gap-1 rounded-full border border-line bg-surface p-1 shadow-lg">
           {([['einfach', 'Vereinfachte Ansicht'], ['erweitert', 'Erweiterte Ansicht']] as const).map(([value, label]) => (
-            <button key={value} type="button" role="radio" aria-checked={s.viewMode === value} onClick={() => patch({ viewMode: value })}
+            <button key={value} type="button" role="radio" aria-checked={s.viewMode === value} tabIndex={s.viewMode === value ? 0 : -1} onClick={() => patch({ viewMode: value })}
               className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${s.viewMode === value ? 'bg-accent text-accentfg' : 'text-muted hover:text-fg'}`}>
               {label}
             </button>
           ))}
         </div>
       </div>
+      <ConsentBanner onMore={() => patch({ section: 'cookies' })} />
     </div>
   );
 }

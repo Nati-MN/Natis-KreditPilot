@@ -46,7 +46,7 @@ export function BalanceChart({ result, principal }: { result: LoanResult; princi
   const data = useMemo(() => [{ jahr: 0, Restschuld: principal }, ...result.years.map((y) => ({ jahr: y.year, Restschuld: y.balance }))], [result, principal]);
   return (
     <Card title={<>Restschuld im Zeitverlauf<InfoTip term="Restschuld" /></>}>
-      <div className="h-64">
+      <div role="img" aria-label="Liniendiagramm: Die Restschuld sinkt über die Kreditjahre bis auf null. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
@@ -79,7 +79,7 @@ export function SplitChart({ result }: { result: LoanResult }) {
   return (
     <Card title="Zinsen und Tilgung" action={<Segmented label="Zeitraum" size="sm" value={view} onChange={setView} options={[{ value: 'jahr', label: 'Pro Jahr' }, { value: 'monat', label: 'Pro Monat' }]} />}>
       <Legend items={[{ color: 'var(--zins)', label: 'Zinsen' }, { color: 'var(--tilgung)', label: 'Tilgung (inkl. Sondertilgung)' }]} />
-      <div className="mt-2 h-64">
+      <div role="img" aria-label="Balkendiagramm: Zinsen und Tilgung je Zeitraum. Der Zinsanteil sinkt, der Tilgungsanteil steigt. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="mt-2 h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap={view === 'jahr' ? '18%' : 0}>
             {GRID}
@@ -109,7 +109,7 @@ export function PaymentChart({ result, fixMonths, variable }: { result: LoanResu
   const max = Math.max(...data.map((d) => d.Monatsrate), 1);
   return (
     <Card title={variable ? 'Rate bei variablem Zins' : 'Rate im Zeitverlauf'} action={variable ? <Badge>Prognose</Badge> : undefined}>
-      <div className="h-64">
+      <div role="img" aria-label="Liniendiagramm: Höhe der Rate über die Laufzeit. Die genauen Werte stehen in den Kennzahlen und Tabellen." className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 18, right: 8, bottom: 0, left: 0 }}>
             {GRID}
@@ -148,7 +148,7 @@ export function CostChart({ principal, interest, fees = 0 }: { principal: number
   return (
     <Card title="Gesamtkosten">
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-        <div className="relative h-52 w-52 max-w-full">
+        <div role="img" aria-label="Ringdiagramm: Anteile von Kreditbetrag, Zinsen und Gebühren an der gesamten Rückzahlung. Die Werte stehen daneben." className="relative h-52 w-52 max-w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={data} dataKey="value" nameKey="name" innerRadius="62%" outerRadius="95%" startAngle={90} endAngle={-270} paddingAngle={interest > 0 ? 2 : 0} stroke="none" animationDuration={ANIM}>
@@ -187,7 +187,7 @@ export function LinesChart({ title, data, lines, xKey, xLabel, tooltipTitle, act
   return (
     <Card title={title} action={action}>
       <Legend items={lines.map((l, i) => ({ color: l.color ?? SERIES[i % SERIES.length], label: l.key }))} />
-      <div className={`mt-2 ${height}`}>
+      <div role="img" aria-label={`Liniendiagramm${typeof title === 'string' ? `: ${title}` : ''}. Die genauen Werte stehen in den Tabellen.`} className={`mt-2 ${height}`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             {GRID}
@@ -214,7 +214,7 @@ export function BarsChart({ title, data, bars, stacked, foot, action }: {
   return (
     <Card title={title} action={action}>
       <Legend items={bars.map((b, i) => ({ color: b.color ?? SERIES[i % SERIES.length], label: b.key }))} />
-      <div className="mt-2 h-64">
+      <div role="img" aria-label={`Balkendiagramm${typeof title === 'string' ? `: ${title}` : ''}. Die genauen Werte stehen in den Tabellen.`} className="mt-2 h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barGap={3}>
             {GRID}

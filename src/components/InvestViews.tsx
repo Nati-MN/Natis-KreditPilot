@@ -209,7 +209,7 @@ function ProjectionTable({ a }: { a: Analysis }) {
       {message && <p role="status" className="mb-2 text-[13px] text-muted">{message}</p>}
       <div className="max-h-[560px] overflow-auto rounded-xl border border-line">
         <table className="w-full border-collapse text-sm">
-          <thead><tr>{head.map((h, i) => <th key={h} className={`${th} ${i < firstNum ? 'text-left' : ''}`}>{h}</th>)}</tr></thead>
+          <thead><tr>{head.map((h, i) => <th scope="col" key={h} className={`${th} ${i < firstNum ? 'text-left' : ''}`}>{h}</th>)}</tr></thead>
           <tbody>
             {body.map((row, ri) => (
               <tr key={ri} className="border-t border-line">
@@ -266,7 +266,7 @@ function PropertyCompare({ raw, projects }: { raw: AppState; projects: SavedScen
           <div className="overflow-x-auto rounded-xl border border-line">
             <table className="w-full border-collapse text-sm" style={{ minWidth: `${180 + columns.length * 150}px` }}>
               <thead>
-                <tr className="bg-surface2"><th className="px-3 py-2 text-left font-semibold" />{columns.map((c, i) => <th key={i} className="px-3 py-2 text-right font-semibold">{c.name}</th>)}</tr>
+                <tr className="bg-surface2"><th scope="col" className="px-3 py-2 text-left font-semibold" />{columns.map((c, i) => <th scope="col" key={i} className="px-3 py-2 text-right font-semibold">{c.name}</th>)}</tr>
               </thead>
               <tbody>
                 {rows.map((r) => {
