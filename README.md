@@ -4,7 +4,7 @@ Kredit-, Finanzierungs- und Vermietungsrechner für Österreich. React + TypeScr
 
     npm install
     npm run dev      # Entwicklungsserver
-    npm test         # 71 Tests der Berechnungslogik (Vitest)
+    npm test         # 72 Tests der Berechnungslogik (Vitest)
     npm run build    # prüft Typen und baut nach dist/
 
 Bereiche: Kreditrechner (Tilgungsplan, Sondertilgung, Zins-Simulator, Meilensteine), Vergleich (Kreditangebote, Varianten, Szenarien), Leistbarkeit, Umschuldung, Tilgen oder investieren, Immobilie vermieten. Unten links lässt sich zwischen vereinfachter und erweiterter Ansicht wechseln.
